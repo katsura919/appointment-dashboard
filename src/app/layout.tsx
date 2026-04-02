@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 const fontSans = Outfit({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -21,14 +23,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${fontSans.variable} antialiased`}>
+      <body className={`${fontSans.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
