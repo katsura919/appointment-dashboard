@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthSessionProvider from "@/components/session-provider";
 import { GoogleValidator } from "@/components/google-validator";
+import { WorkspaceProvider } from "@/contexts/workspace-context";
 import { Toaster } from "sonner";
 
 const fontSans = DM_Sans({
@@ -48,7 +49,9 @@ export default function RootLayout({
         >
           <TooltipProvider>
             <AuthSessionProvider>
-              <GoogleValidator>{children}</GoogleValidator>
+              <WorkspaceProvider>
+                <GoogleValidator>{children}</GoogleValidator>
+              </WorkspaceProvider>
             </AuthSessionProvider>
             <Toaster richColors position="top-right" />
           </TooltipProvider>

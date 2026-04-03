@@ -13,7 +13,7 @@ export type AppointmentStatus = "upcoming" | "completed" | "cancelled" | "resche
 export type RecurrenceFrequency = "weekly" | "monthly" | "yearly"
 
 export interface IAppointment extends Document {
-  userId: mongoose.Types.ObjectId
+  workspaceId: mongoose.Types.ObjectId | string
   title: string
   category: AppointmentCategory
   subcategory?: string
@@ -60,7 +60,7 @@ const CATEGORIES: AppointmentCategory[] = [
 
 const AppointmentSchema = new Schema<IAppointment>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     title: { type: String, required: true, trim: true },
     category: { type: String, enum: CATEGORIES, required: true },
     subcategory: { type: String, trim: true },
@@ -102,11 +102,11 @@ const AppointmentSchema = new Schema<IAppointment>(
 )
 
 // Compound index for efficient dashboard queries
-AppointmentSchema.index({ userId: 1, date: 1 }) // legacy
-AppointmentSchema.index({ userId: 1, startsAt: 1, status: 1 })
-AppointmentSchema.index({ userId: 1, category: 1 })
-AppointmentSchema.index({ userId: 1, memberId: 1 }) // legacy
-AppointmentSchema.index({ userId: 1, memberIds: 1 })
+AppointmentSchema.index({ workspaceId: 1, date: 1 }) // legacy
+AppointmentSchema.index({ workspaceId: 1, startsAt: 1, status: 1 })
+AppointmentSchema.index({ workspaceId: 1, category: 1 })
+AppointmentSchema.index({ workspaceId: 1, memberId: 1 }) // legacy
+AppointmentSchema.index({ workspaceId: 1, memberIds: 1 })
 
 const Appointment: Model<IAppointment> =
   mongoose.models.Appointment ??

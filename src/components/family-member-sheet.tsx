@@ -24,7 +24,7 @@ import type { FamilyMemberResponse, MemberRole } from "@/lib/types"
 interface FamilyMemberSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  userId: string
+  workspaceId: string
   member?: FamilyMemberResponse | null
   onSuccess: () => void
 }
@@ -39,7 +39,7 @@ const ROLE_LABELS: Record<MemberRole, string> = {
 export function FamilyMemberSheet({
   open,
   onOpenChange,
-  userId,
+  workspaceId,
   member,
   onSuccess,
 }: FamilyMemberSheetProps) {
@@ -80,7 +80,6 @@ export function FamilyMemberSheet({
     setLoading(true)
     try {
       const body: Record<string, unknown> = {
-        userId,
         name: name.trim(),
         role,
         contactNumber: contactNumber.trim(),
@@ -95,7 +94,7 @@ export function FamilyMemberSheet({
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-workspace-id": workspaceId },
         body: JSON.stringify(body),
       })
 

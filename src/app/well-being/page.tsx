@@ -15,20 +15,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PlusIcon } from "lucide-react"
-import { useUserId } from "@/hooks/use-user-id"
+import { useWorkspaceId } from "@/hooks/use-workspace-id"
 import type { WellBeingLogResponse } from "@/lib/types"
 
 export default function WellBeingPage() {
-  const userId = useUserId()
+  const workspaceId = useWorkspaceId()
   const [logs, setLogs] = React.useState<WellBeingLogResponse[]>([])
   const [loading, setLoading] = React.useState(true)
   const [showCheckIn, setShowCheckIn] = React.useState(false)
 
   const fetchLogs = React.useCallback(async () => {
-    if (!userId) return
+    if (!workspaceId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/well-being`)
+      const res = await fetch(`/api/well-being`, {
+        headers: { "x-workspace-id": workspaceId },
+      })
       if (res.ok) {
         const data = await res.json()
         setLogs(data.logs ?? [])
@@ -38,7 +40,7 @@ export default function WellBeingPage() {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [workspaceId])
 
   React.useEffect(() => {
     fetchLogs()
@@ -91,7 +93,7 @@ export default function WellBeingPage() {
                 How are you feeling today? Rate your metrics to track your well-being.
               </DialogDescription>
             </DialogHeader>
-            <WellBeingForm onSuccess={handleLogSuccess} />
+            <WellBeingForm workspaceId={workspaceId ?? ""} onSuccess={handleLogSuccess} />
           </DialogContent>
         </Dialog>
 

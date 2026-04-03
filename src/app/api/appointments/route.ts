@@ -5,6 +5,7 @@ import Appointment from "@/models/Appointment";
 import FamilyMember from "@/models/FamilyMember";
 import User from "@/models/User";
 import { auth } from "@/auth";
+import { requireWorkspaceAccess } from "@/lib/workspace-utils";
 
 const CATEGORIES = [
   "health_wellness",
@@ -43,15 +44,18 @@ const CreateAppointmentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+    
+    // Ensure standard models are registered before populating
+    FamilyMember.modelName; 
+    
     const { searchParams } = new URL(request.url);
 
     // Build filter from query params
-    const filter: Record<string, any> = { userId };
+    const filter: Record<string, any> = { workspaceId: workspace._id };
 
     const category = searchParams.get("category");
     if (category) filter.category = category;
@@ -106,11 +110,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
+    const workspaceId = request.headers.get("x-workspace-id");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
 
     const body = await request.json();
     
@@ -135,9 +138,9 @@ export async function POST(request: NextRequest) {
 
     const appointment = await Appointment.create({
         ...parsed.data,
-        userId,
-        createdBy: userId,
-        updatedBy: userId,
+        workspaceId: workspace._id,
+        createdBy: session.user?.id,
+        updatedBy: session.user?.id,
     });
     
     await appointment.populate("memberIds", "name role avatar color");

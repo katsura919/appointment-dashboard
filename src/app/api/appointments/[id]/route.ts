@@ -5,6 +5,7 @@ import Appointment from "@/models/Appointment"
 import FamilyMember from "@/models/FamilyMember"
 import User from "@/models/User"
 import { auth } from "@/auth"
+import { requireWorkspaceAccess } from "@/lib/workspace-utils"
 
 const CATEGORIES = [
   "health_wellness",
@@ -50,11 +51,12 @@ export async function GET(
 ) {
   const { id } = await params
   try {
-    const session = await auth();
-    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    await connectDB()
+    const workspaceId = _request.headers.get("x-workspace-id") || new URL(_request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    const appointment = await Appointment.findOne({ _id: id, userId: session.user.id })
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+
+    const appointment = await Appointment.findOne({ _id: id, workspaceId: workspace._id })
       .populate("memberIds", "name role avatar color")
       .populate("memberId", "name role avatar")
 
@@ -73,8 +75,11 @@ export async function PUT(
 ) {
   const { id } = await params
   try {
-    const session = await auth();
-    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const workspaceId = request.headers.get("x-workspace-id");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
+
     const body = await request.json()
     
     if (!body.memberIds && body.memberId) {
@@ -87,11 +92,9 @@ export async function PUT(
     const parsed = UpdateAppointmentSchema.safeParse(body)
     if (!parsed.success) return Response.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 })
 
-    await connectDB()
-
     const appointment = await Appointment.findOneAndUpdate(
-      { _id: id, userId: session.user.id },
-      { ...parsed.data, updatedBy: session.user.id },
+      { _id: id, workspaceId: workspace._id },
+      { ...parsed.data, updatedBy: session.user?.id },
       { new: true, runValidators: true }
     ).populate("memberIds", "name role avatar color").populate("memberId", "name role avatar")
 
@@ -110,11 +113,12 @@ export async function DELETE(
 ) {
   const { id } = await params
   try {
-    const session = await auth();
-    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    await connectDB()
+    const workspaceId = _request.headers.get("x-workspace-id") || new URL(_request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    const appointment = await Appointment.findOneAndDelete({ _id: id, userId: session.user.id })
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+
+    const appointment = await Appointment.findOneAndDelete({ _id: id, workspaceId: workspace._id })
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ message: "Appointment deleted" }, { status: 200 })

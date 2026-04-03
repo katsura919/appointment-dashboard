@@ -7,7 +7,7 @@ import { FamilyMemberSheet } from "@/components/family-member-sheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useUserId } from "@/hooks/use-user-id"
+import { useWorkspaceId } from "@/hooks/use-workspace-id"
 import type { FamilyMemberResponse, MemberRole } from "@/lib/types"
 
 const ROLE_COLORS: Record<MemberRole, string> = {
@@ -113,7 +113,7 @@ function MemberCard({
 }
 
 export default function FamilyPage() {
-  const userId = useUserId()
+  const workspaceId = useWorkspaceId()
   const [members, setMembers] = React.useState<FamilyMemberResponse[]>([])
   const [loading, setLoading] = React.useState(true)
   const [sheetOpen, setSheetOpen] = React.useState(false)
@@ -121,10 +121,12 @@ export default function FamilyPage() {
     React.useState<FamilyMemberResponse | null>(null)
 
   const fetchMembers = React.useCallback(async () => {
-    if (!userId) return
+    if (!workspaceId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/family-members?userId=${userId}`)
+      const res = await fetch(`/api/family-members`, {
+        headers: { "x-workspace-id": workspaceId },
+      })
       const data = await res.json()
       setMembers(data.members ?? [])
     } catch {
@@ -132,7 +134,7 @@ export default function FamilyPage() {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [workspaceId])
 
   React.useEffect(() => {
     fetchMembers()
@@ -141,7 +143,10 @@ export default function FamilyPage() {
   async function handleDelete(id: string) {
     if (!confirm("Remove this family member? Their appointments will remain."))
       return
-    await fetch(`/api/family-members/${id}`, { method: "DELETE" })
+    await fetch(`/api/family-members/${id}`, { 
+      method: "DELETE",
+      headers: { "x-workspace-id": workspaceId ?? "" },
+    })
     fetchMembers()
   }
 
@@ -209,14 +214,14 @@ export default function FamilyPage() {
         )}
       </div>
 
-      {userId && (
+      {workspaceId && (
         <FamilyMemberSheet
           open={sheetOpen}
           onOpenChange={(open) => {
             setSheetOpen(open)
             if (!open) setEditingMember(null)
           }}
-          userId={userId}
+          workspaceId={workspaceId}
           member={editingMember}
           onSuccess={fetchMembers}
         />

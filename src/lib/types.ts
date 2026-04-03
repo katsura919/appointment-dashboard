@@ -6,7 +6,7 @@ export type RecurrenceFrequency = "weekly" | "monthly" | "yearly"
 
 export interface FamilyMemberResponse {
   _id: string
-  userId: string
+  workspaceId: string
   name: string
   role: MemberRole
   color?: string
@@ -19,7 +19,7 @@ export interface FamilyMemberResponse {
 
 export interface AppointmentResponse {
   _id: string
-  userId: string
+  workspaceId: string
   title: string
   category: AppointmentCategory
   subcategory?: string
@@ -52,7 +52,7 @@ export interface AppointmentResponse {
 
 export interface WellBeingLogResponse {
   _id: string
-  userId: string
+  workspaceId: string
   date: string
   metrics: {
     moodScore?: number

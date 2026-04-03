@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CATEGORY_META, type AppointmentCategory } from "@/lib/categories"
-import { useUserId } from "@/hooks/use-user-id"
+import { useWorkspaceId } from "@/hooks/use-workspace-id"
 import type { AppointmentResponse } from "@/lib/types"
 
 // ─── date-fns localizer ───────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ function EventComponent({ event }: { event: CalendarEvent }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
-  const userId = useUserId()
+  const workspaceId = useWorkspaceId()
 
   const [appointments, setAppointments] = React.useState<AppointmentResponse[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -204,10 +204,12 @@ export default function AppointmentsPage() {
   const [defaultDate, setDefaultDate] = React.useState<string | undefined>()
 
   const fetchAppointments = React.useCallback(async () => {
-    if (!userId) return
+    if (!workspaceId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/appointments?userId=${userId}`)
+      const res = await fetch(`/api/appointments`, {
+        headers: { "x-workspace-id": workspaceId },
+      })
       const data = await res.json()
       setAppointments(data.appointments ?? [])
     } catch {
@@ -215,7 +217,7 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [workspaceId])
 
   React.useEffect(() => {
     fetchAppointments()
@@ -368,11 +370,11 @@ export default function AppointmentsPage() {
         )}
       </div>
 
-      {userId && (
+      {workspaceId && (
         <AppointmentSheet
           open={sheetOpen}
           onOpenChange={handleSheetClose}
-          userId={userId}
+          workspaceId={workspaceId}
           appointment={editingAppointment}
           defaultDate={defaultDate}
           onSuccess={fetchAppointments}

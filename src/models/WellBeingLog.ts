@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface IWellBeingLog extends Document {
-  userId: mongoose.Types.ObjectId
+  workspaceId: mongoose.Types.ObjectId | string
   date: Date
   metrics: {
     moodScore?: number       // 1-5
@@ -20,7 +20,7 @@ export interface IWellBeingLog extends Document {
 
 const WellBeingLogSchema = new Schema<IWellBeingLog>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     date: { type: Date, required: true },
     metrics: {
       moodScore: { type: Number, min: 1, max: 5 },
@@ -38,7 +38,7 @@ const WellBeingLogSchema = new Schema<IWellBeingLog>(
 )
 
 // Compound index for querying a user's logs over time smoothly
-WellBeingLogSchema.index({ userId: 1, date: -1 })
+WellBeingLogSchema.index({ workspaceId: 1, date: -1 })
 
 const WellBeingLog: Model<IWellBeingLog> =
   mongoose.models.WellBeingLog ??

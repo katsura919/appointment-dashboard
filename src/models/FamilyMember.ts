@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface IFamilyMember extends Document {
-  userId: mongoose.Types.ObjectId
+  workspaceId: mongoose.Types.ObjectId | string
   name: string
   role: "mom" | "dad" | "child" | "other"
   color?: string
@@ -18,7 +18,7 @@ export interface IFamilyMember extends Document {
 
 const FamilyMemberSchema = new Schema<IFamilyMember>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     name: { type: String, required: true, trim: true },
     role: { type: String, enum: ["mom", "dad", "child", "other"], required: true },
     color: { type: String, trim: true },

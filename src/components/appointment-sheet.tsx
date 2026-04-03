@@ -27,7 +27,7 @@ import type { AppointmentResponse, FamilyMemberResponse, AppointmentStatus } fro
 interface AppointmentSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  userId: string
+  workspaceId: string
   appointment?: AppointmentResponse | null
   defaultDate?: string // ISO date string, used when creating from a calendar slot
   onSuccess: () => void
@@ -45,7 +45,7 @@ const REMINDER_OPTIONS = [
 export function AppointmentSheet({
   open,
   onOpenChange,
-  userId,
+  workspaceId,
   appointment,
   defaultDate,
   onSuccess,
@@ -78,12 +78,14 @@ export function AppointmentSheet({
 
   // Fetch family members when sheet opens
   React.useEffect(() => {
-    if (!open || !userId) return
-    fetch(`/api/family-members?userId=${userId}`)
+    if (!open || !workspaceId) return
+    fetch(`/api/family-members`, {
+      headers: { "x-workspace-id": workspaceId }
+    })
       .then((r) => r.json())
       .then((data) => setMembers(data.members ?? []))
       .catch(() => {})
-  }, [open, userId])
+  }, [open, workspaceId])
 
   // Populate form when editing
   React.useEffect(() => {
@@ -183,7 +185,7 @@ export function AppointmentSheet({
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-workspace-id": workspaceId },
         body: JSON.stringify(body),
       })
 

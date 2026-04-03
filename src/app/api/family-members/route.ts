@@ -2,9 +2,9 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import FamilyMember from "@/models/FamilyMember"
+import { requireWorkspaceAccess } from "@/lib/workspace-utils"
 
 const CreateFamilyMemberSchema = z.object({
-  userId: z.string().min(1),
   name: z.string().min(1).trim(),
   role: z.enum(["mom", "dad", "child", "other"]),
   dateOfBirth: z.string().datetime().optional(),
@@ -15,16 +15,12 @@ const CreateFamilyMemberSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    if (!userId) {
-      return Response.json({ error: "userId is required" }, { status: 400 })
-    }
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
 
-    await connectDB()
-
-    const members = await FamilyMember.find({ userId }).sort({ createdAt: 1 })
+    const members = await FamilyMember.find({ workspaceId: workspace._id }).sort({ createdAt: 1 })
 
     return Response.json({ members }, { status: 200 })
   } catch (error) {
@@ -35,6 +31,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+
     const body = await request.json()
     const parsed = CreateFamilyMemberSchema.safeParse(body)
 
@@ -45,9 +46,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await connectDB()
-
-    const member = await FamilyMember.create(parsed.data)
+    const member = await FamilyMember.create({
+        ...parsed.data,
+        workspaceId: workspace._id
+    })
 
     return Response.json({ member }, { status: 201 })
   } catch (error) {

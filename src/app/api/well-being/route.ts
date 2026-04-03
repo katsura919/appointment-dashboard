@@ -3,6 +3,7 @@ import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import WellBeingLog from "@/models/WellBeingLog"
 import { auth } from "@/auth"
+import { requireWorkspaceAccess } from "@/lib/workspace-utils"
 
 const MetricsSchema = z.object({
   moodScore: z.number().min(1).max(5).optional(),
@@ -23,17 +24,16 @@ const CreateWellBeingSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const userId = session.user.id
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
 
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
 
-    const filter: Record<string, any> = { userId }
+    const filter: Record<string, any> = { workspaceId: workspace._id }
 
     if (startDate || endDate) {
       filter.date = {}
@@ -62,11 +62,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const userId = session.user.id
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
 
     const body = await request.json()
     const parsed = CreateWellBeingSchema.safeParse(body)
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const log = await WellBeingLog.create({
       ...parsed.data,
-      userId,
+      workspaceId: workspace._id,
     })
 
     return Response.json({ log }, { status: 201 })

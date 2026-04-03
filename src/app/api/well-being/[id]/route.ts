@@ -3,6 +3,7 @@ import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import WellBeingLog from "@/models/WellBeingLog"
 import { auth } from "@/auth"
+import { requireWorkspaceAccess } from "@/lib/workspace-utils"
 
 const MetricsSchema = z.object({
   moodScore: z.number().min(1).max(5).optional(),
@@ -26,20 +27,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const userId = session.user.id
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+    
     const { id } = await params
 
     if (!id) {
         return Response.json({ error: "Missing ID" }, { status: 400 })
     }
 
-    await connectDB()
-
-    const log = await WellBeingLog.findOne({ _id: id, userId })
+    const log = await WellBeingLog.findOne({ _id: id, workspaceId: workspace._id })
 
     if (!log) {
       return Response.json({ error: "Log not found" }, { status: 404 })
@@ -60,11 +59,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const userId = session.user.id
+    const workspaceId = request.headers.get("x-workspace-id");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
     const { id } = await params
 
     if (!id) {
@@ -81,10 +79,8 @@ export async function PUT(
       )
     }
 
-    await connectDB()
-
     const log = await WellBeingLog.findOneAndUpdate(
-      { _id: id, userId },
+      { _id: id, workspaceId: workspace._id },
       { $set: parsed.data },
       { new: true, runValidators: true }
     )
@@ -108,20 +104,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    const userId = session.user.id
+    const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
+    if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
+
+    const { workspace } = await requireWorkspaceAccess(workspaceId);
+    
     const { id } = await params
 
     if (!id) {
         return Response.json({ error: "Missing ID" }, { status: 400 })
     }
 
-    await connectDB()
-
-    const result = await WellBeingLog.deleteOne({ _id: id, userId })
+    const result = await WellBeingLog.deleteOne({ _id: id, workspaceId: workspace._id })
 
     if (result.deletedCount === 0) {
       return Response.json({ error: "Log not found" }, { status: 404 })

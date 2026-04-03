@@ -26,7 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUserId } from "@/hooks/use-user-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import type { AppointmentResponse, AppointmentStatus } from "@/lib/types";
 
 function StatCard({
@@ -57,7 +57,7 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  const userId = useUserId();
+  const workspaceId = useWorkspaceId();
   const [appointments, setAppointments] = React.useState<AppointmentResponse[]>(
     [],
   );
@@ -67,14 +67,16 @@ export default function DashboardPage() {
     React.useState<AppointmentResponse | null>(null);
 
   const fetchAppointments = React.useCallback(async () => {
-    if (!userId) {
+    if (!workspaceId) {
       setAppointments([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/appointments?userId=${userId}`);
+      const res = await fetch(`/api/appointments`, {
+        headers: { "x-workspace-id": workspaceId },
+      });
       if (!res.ok) {
         console.error(
           "[Dashboard] Failed to fetch appointments:",
@@ -91,7 +93,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [workspaceId]);
 
   React.useEffect(() => {
     fetchAppointments();
@@ -100,7 +102,7 @@ export default function DashboardPage() {
   async function handleStatusChange(id: string, status: AppointmentStatus) {
     await fetch(`/api/appointments/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-workspace-id": workspaceId ?? "" },
       body: JSON.stringify({ status }),
     });
     fetchAppointments();
@@ -108,7 +110,7 @@ export default function DashboardPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this appointment?")) return;
-    await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+    await fetch(`/api/appointments/${id}`, { method: "DELETE", headers: { "x-workspace-id": workspaceId ?? "" } });
     fetchAppointments();
   }
 
@@ -198,14 +200,14 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {userId && (
+      {workspaceId && (
         <AppointmentSheet
           open={sheetOpen}
           onOpenChange={(open) => {
             setSheetOpen(open);
             if (!open) setEditingAppointment(null);
           }}
-          userId={userId}
+          workspaceId={workspaceId}
           appointment={editingAppointment}
           onSuccess={fetchAppointments}
         />

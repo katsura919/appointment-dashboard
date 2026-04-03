@@ -9,10 +9,11 @@ import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 
 interface WellBeingFormProps {
+  workspaceId: string
   onSuccess?: () => void
 }
 
-export function WellBeingForm({ onSuccess }: WellBeingFormProps) {
+export function WellBeingForm({ workspaceId, onSuccess }: WellBeingFormProps) {
   const [saving, setSaving] = React.useState(false)
 
   // Default scales of 3 out of 5
@@ -54,7 +55,7 @@ export function WellBeingForm({ onSuccess }: WellBeingFormProps) {
     try {
       const res = await fetch("/api/well-being", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-workspace-id": workspaceId },
         body: JSON.stringify(payload),
       })
 
