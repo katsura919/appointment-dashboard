@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthSessionProvider from "@/components/session-provider";
+import { GoogleValidator } from "@/components/google-validator";
 import { Toaster } from "sonner";
 
 const fontSans = Outfit({
@@ -33,7 +34,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <AuthSessionProvider>{children}</AuthSessionProvider>
+            <AuthSessionProvider>
+              <GoogleValidator>{children}</GoogleValidator>
+            </AuthSessionProvider>
             <Toaster richColors position="top-right" />
           </TooltipProvider>
         </ThemeProvider>

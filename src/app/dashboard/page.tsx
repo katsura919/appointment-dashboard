@@ -1,15 +1,33 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { isToday, isPast, isFuture, addDays, isWithinInterval, startOfDay } from "date-fns"
-import { CalendarIcon, ClockIcon, AlertCircleIcon, ListIcon } from "lucide-react"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { AppointmentTable } from "@/components/appointment-table"
-import { AppointmentSheet } from "@/components/appointment-sheet"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useUserId } from "@/hooks/use-user-id"
-import type { AppointmentResponse, AppointmentStatus } from "@/lib/types"
+import * as React from "react";
+import {
+  isToday,
+  isPast,
+  isFuture,
+  addDays,
+  isWithinInterval,
+  startOfDay,
+} from "date-fns";
+import {
+  CalendarIcon,
+  ClockIcon,
+  AlertCircleIcon,
+  ListIcon,
+} from "lucide-react";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { AppointmentTable } from "@/components/appointment-table";
+import { AppointmentSheet } from "@/components/appointment-sheet";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUserId } from "@/hooks/use-user-id";
+import type { AppointmentResponse, AppointmentStatus } from "@/lib/types";
 
 function StatCard({
   label,
@@ -17,10 +35,10 @@ function StatCard({
   icon: Icon,
   description,
 }: {
-  label: string
-  value: number
-  icon: React.ElementType
-  description: string
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  description: string;
 }) {
   return (
     <Card className="@container/card bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card">
@@ -35,66 +53,81 @@ function StatCard({
         {description}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export default function DashboardPage() {
-  const userId = useUserId()
-  const [appointments, setAppointments] = React.useState<AppointmentResponse[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const userId = useUserId();
+  const [appointments, setAppointments] = React.useState<AppointmentResponse[]>(
+    [],
+  );
+  const [loading, setLoading] = React.useState(true);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
   const [editingAppointment, setEditingAppointment] =
-    React.useState<AppointmentResponse | null>(null)
+    React.useState<AppointmentResponse | null>(null);
 
   const fetchAppointments = React.useCallback(async () => {
-    if (!userId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/appointments?userId=${userId}`)
-      const data = await res.json()
-      setAppointments(data.appointments ?? [])
-    } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
+    if (!userId) {
+      setAppointments([]);
+      setLoading(false);
+      return;
     }
-  }, [userId])
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/appointments?userId=${userId}`);
+      if (!res.ok) {
+        console.error(
+          "[Dashboard] Failed to fetch appointments:",
+          await res.text(),
+        );
+        setAppointments([]);
+      } else {
+        const data = await res.json();
+        setAppointments(data.appointments ?? []);
+      }
+    } catch (error) {
+      console.error("[Dashboard] Error fetching appointments:", error);
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
   React.useEffect(() => {
-    fetchAppointments()
-  }, [fetchAppointments])
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   async function handleStatusChange(id: string, status: AppointmentStatus) {
     await fetch(`/api/appointments/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
-    })
-    fetchAppointments()
+    });
+    fetchAppointments();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this appointment?")) return
-    await fetch(`/api/appointments/${id}`, { method: "DELETE" })
-    fetchAppointments()
+    if (!confirm("Delete this appointment?")) return;
+    await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+    fetchAppointments();
   }
 
   function handleEdit(a: AppointmentResponse) {
-    setEditingAppointment(a)
-    setSheetOpen(true)
+    setEditingAppointment(a);
+    setSheetOpen(true);
   }
 
   function handleNew() {
-    setEditingAppointment(null)
-    setSheetOpen(true)
+    setEditingAppointment(null);
+    setSheetOpen(true);
   }
 
-  const now = new Date()
+  const now = new Date();
   const todayCount = appointments.filter(
-    (a) => a.status === "upcoming" && isToday(new Date(a.date))
-  ).length
+    (a) => a.status === "upcoming" && isToday(new Date(a.date)),
+  ).length;
   const upcomingCount = appointments.filter((a) => {
-    const d = new Date(a.date)
+    const d = new Date(a.date);
     return (
       a.status === "upcoming" &&
       isFuture(d) &&
@@ -103,15 +136,17 @@ export default function DashboardPage() {
         start: startOfDay(addDays(now, 1)),
         end: addDays(now, 7),
       })
-    )
-  }).length
+    );
+  }).length;
   const overdueCount = appointments.filter(
     (a) =>
       a.status === "upcoming" &&
       isPast(new Date(a.date)) &&
-      !isToday(new Date(a.date))
-  ).length
-  const totalUpcoming = appointments.filter((a) => a.status === "upcoming").length
+      !isToday(new Date(a.date)),
+  ).length;
+  const totalUpcoming = appointments.filter(
+    (a) => a.status === "upcoming",
+  ).length;
 
   return (
     <DashboardShell title="Dashboard">
@@ -167,8 +202,8 @@ export default function DashboardPage() {
         <AppointmentSheet
           open={sheetOpen}
           onOpenChange={(open) => {
-            setSheetOpen(open)
-            if (!open) setEditingAppointment(null)
+            setSheetOpen(open);
+            if (!open) setEditingAppointment(null);
           }}
           userId={userId}
           appointment={editingAppointment}
@@ -176,5 +211,5 @@ export default function DashboardPage() {
         />
       )}
     </DashboardShell>
-  )
+  );
 }

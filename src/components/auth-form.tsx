@@ -1,27 +1,27 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { useAuthStore } from "@/store/auth-store"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth-store";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 const NEXTAUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked:
@@ -32,94 +32,100 @@ const NEXTAUTH_ERROR_MESSAGES: Record<string, string> = {
   EmailCreateAccount: "Could not create account. Please try again.",
   Callback: "Authentication callback error. Please try again.",
   Default: "An authentication error occurred. Please try again.",
-}
+};
 
-type Mode = "login" | "register"
+type Mode = "login" | "register";
 
 interface AuthFormProps extends React.ComponentProps<"div"> {
-  mode: Mode
+  mode: Mode;
 }
 
 export function AuthForm({ mode, className, ...props }: AuthFormProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const isLogin = mode === "login"
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isLogin = mode === "login";
+  const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Show NextAuth error passed via ?error= query param (e.g. after Google OAuth failure)
   useEffect(() => {
-    const error = searchParams.get("error")
+    const error = searchParams.get("error");
     if (error) {
-      const msg = NEXTAUTH_ERROR_MESSAGES[error] ?? NEXTAUTH_ERROR_MESSAGES.Default
-      toast.error(msg)
+      const msg =
+        NEXTAUTH_ERROR_MESSAGES[error] ?? NEXTAUTH_ERROR_MESSAGES.Default;
+      toast.error(msg);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
-    const form = e.currentTarget
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement)
+      .value;
     const name = !isLogin
       ? (form.elements.namedItem("name") as HTMLInputElement).value
-      : undefined
+      : undefined;
 
     try {
-      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register"
-      const body = isLogin ? { email, password } : { name, email, password }
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const body = isLogin ? { email, password } : { name, email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
         const msg =
           typeof data.error === "string"
             ? data.error
-            : "Something went wrong. Please try again."
-        toast.error(msg)
-        return
+            : "Something went wrong. Please try again.";
+        toast.error(msg);
+        setLoading(false);
+        return;
       }
 
       if (isLogin) {
-        setAuth(data.user, data.token)
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`
-        toast.success("Logged in successfully!")
-        router.push("/dashboard")
+        setAuth(data.user, data.token);
+        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+        toast.success("Logged in successfully!");
+        router.push("/dashboard");
       } else {
-        toast.success("Account created! Please log in.")
-        router.push("/login")
+        toast.success("Account created successfully! Redirecting to login...");
+        setTimeout(() => {
+          router.push("/login");
+        }, 1000);
       }
     } catch {
-      toast.error("Network error. Please try again.")
+      toast.error("Network error. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleGoogleSignIn() {
-    setGoogleLoading(true)
+    setGoogleLoading(true);
     try {
-      const result = await signIn("google", { callbackUrl: "/dashboard", redirect: false })
-      if (result?.error) {
-        const msg = NEXTAUTH_ERROR_MESSAGES[result.error] ?? NEXTAUTH_ERROR_MESSAGES.Default
-        toast.error(msg)
-      } else if (result?.url) {
-        router.push(result.url)
-      }
-    } catch {
-      toast.error("Google sign-in failed. Please try again.")
-    } finally {
-      setGoogleLoading(false)
+      // Store the action type (signup or login) in sessionStorage
+      sessionStorage.setItem("auth-action", isLogin ? "login" : "signup");
+
+      // Redirect to dashboard, then validate on the dashboard
+      const result = await signIn("google", {
+        callbackUrl: "/dashboard",
+        redirect: true,
+      });
+    } catch (error) {
+      console.error("[Google SignIn Error]", error);
+      toast.error("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
     }
   }
 
@@ -212,14 +218,20 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
                   {isLogin ? (
                     <>
                       Don&apos;t have an account?{" "}
-                      <a href="/register" className="underline underline-offset-4 hover:text-primary">
+                      <a
+                        href="/register"
+                        className="underline underline-offset-4 hover:text-primary"
+                      >
                         Sign up
                       </a>
                     </>
                   ) : (
                     <>
                       Already have an account?{" "}
-                      <a href="/login" className="underline underline-offset-4 hover:text-primary">
+                      <a
+                        href="/login"
+                        className="underline underline-offset-4 hover:text-primary"
+                      >
                         Login
                       </a>
                     </>
@@ -235,5 +247,5 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
         and <a href="#">Privacy Policy</a>.
       </FieldDescription>
     </div>
-  )
+  );
 }
