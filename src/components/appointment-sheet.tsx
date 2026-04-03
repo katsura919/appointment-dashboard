@@ -17,13 +17,12 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
 import { CATEGORY_OPTIONS } from "@/lib/categories"
 import type { AppointmentCategory } from "@/lib/categories"
-import type { AppointmentResponse, FamilyMemberResponse } from "@/lib/types"
+import type { AppointmentResponse, FamilyMemberResponse, AppointmentStatus } from "@/lib/types"
 
 interface AppointmentSheetProps {
   open: boolean
@@ -33,6 +32,15 @@ interface AppointmentSheetProps {
   defaultDate?: string // ISO date string, used when creating from a calendar slot
   onSuccess: () => void
 }
+
+const REMINDER_OPTIONS = [
+  { label: "15m before", value: 15 },
+  { label: "30m before", value: 30 },
+  { label: "1h before", value: 60 },
+  { label: "2h before", value: 120 },
+  { label: "1d before", value: 1440 },
+  { label: "2d before", value: 2880 },
+]
 
 export function AppointmentSheet({
   open,
@@ -49,15 +57,21 @@ export function AppointmentSheet({
     "health_wellness"
   )
   const [subcategory, setSubcategory] = React.useState("")
+  const [status, setStatus] = React.useState<AppointmentStatus>("upcoming")
   const [memberIds, setMemberIds] = React.useState<string[]>([])
   const [date, setDate] = React.useState("")
   const [time, setTime] = React.useState("")
+  const [endDate, setEndDate] = React.useState("")
+  const [endTime, setEndTime] = React.useState("")
   const [location, setLocation] = React.useState("")
   const [notes, setNotes] = React.useState("")
   const [isRecurring, setIsRecurring] = React.useState(false)
   const [frequency, setFrequency] = React.useState<
     "weekly" | "monthly" | "yearly"
   >("monthly")
+  const [interval, setInterval] = React.useState(1)
+  const [recurrenceEndDate, setRecurrenceEndDate] = React.useState("")
+  const [reminderRules, setReminderRules] = React.useState<number[]>([])
 
   const [members, setMembers] = React.useState<FamilyMemberResponse[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -77,27 +91,48 @@ export function AppointmentSheet({
       setTitle(appointment.title)
       setCategory(appointment.category)
       setSubcategory(appointment.subcategory ?? "")
+      setStatus(appointment.status ?? "upcoming")
       setMemberIds(appointment.memberIds?.map(m => m._id) ?? (appointment.memberId ? [appointment.memberId._id] : []))
-      const aptDate = new Date(appointment.startsAt || appointment.date || "")
-      setDate(format(aptDate, "yyyy-MM-dd"))
-      setTime(format(aptDate, "HH:mm"))
+      
+      const start = new Date(appointment.startsAt || appointment.date || "")
+      setDate(format(start, "yyyy-MM-dd"))
+      setTime(format(start, "HH:mm"))
+
+      if (appointment.endsAt) {
+        const end = new Date(appointment.endsAt)
+        setEndDate(format(end, "yyyy-MM-dd"))
+        setEndTime(format(end, "HH:mm"))
+      } else {
+        setEndDate("")
+        setEndTime("")
+      }
+
       setLocation(appointment.location ?? "")
       setNotes(appointment.notes ?? "")
       setIsRecurring(appointment.isRecurring)
       setFrequency(appointment.recurrence?.frequency ?? "monthly")
+      setInterval(appointment.recurrence?.interval ?? 1)
+      setRecurrenceEndDate(appointment.recurrence?.endDate ? format(new Date(appointment.recurrence.endDate), "yyyy-MM-dd") : "")
+      setReminderRules(appointment.reminderRules ?? [])
     } else if (open && !appointment) {
       setTitle("")
       setCategory("health_wellness")
       setSubcategory("")
+      setStatus("upcoming")
       setMemberIds([])
       setDate(defaultDate ?? "")
       setTime("")
+      setEndDate("")
+      setEndTime("")
       setLocation("")
       setNotes("")
       setIsRecurring(false)
       setFrequency("monthly")
+      setInterval(1)
+      setRecurrenceEndDate("")
+      setReminderRules([])
     }
-  }, [open, appointment])
+  }, [open, appointment, defaultDate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -105,24 +140,41 @@ export function AppointmentSheet({
 
     setLoading(true)
     try {
-      let startsAt: string;
-      if (time) {
-        startsAt = new Date(`${date}T${time}:00`).toISOString();
-      } else {
-        startsAt = new Date(`${date}T00:00:00`).toISOString();
+      const startsAt = time 
+        ? new Date(`${date}T${time}:00`).toISOString()
+        : new Date(`${date}T00:00:00`).toISOString()
+
+      let endsAt: string | undefined
+      if (endDate) {
+        endsAt = endTime 
+          ? new Date(`${endDate}T${endTime}:00`).toISOString()
+          : new Date(`${endDate}T23:59:59`).toISOString()
+      } else if (time && endTime) {
+         // Same day, different time
+         endsAt = new Date(`${date}T${endTime}:00`).toISOString()
       }
 
       const body: Record<string, unknown> = {
         title: title.trim(),
         category,
+        status,
         memberIds,
         startsAt,
+        endsAt,
+        location: location.trim() || undefined,
+        notes: notes.trim() || undefined,
+        subcategory: subcategory.trim() || undefined,
         isRecurring,
+        reminderRules,
       }
-      if (subcategory.trim()) body.subcategory = subcategory.trim()
-      if (location.trim()) body.location = location.trim()
-      if (notes.trim()) body.notes = notes.trim()
-      if (isRecurring) body.recurrence = { frequency }
+
+      if (isRecurring) {
+        body.recurrence = { 
+          frequency, 
+          interval,
+          endDate: recurrenceEndDate ? new Date(recurrenceEndDate).toISOString() : undefined
+        }
+      }
 
       const url = isEditing
         ? `/api/appointments/${appointment!._id}`
@@ -140,23 +192,49 @@ export function AppointmentSheet({
       toast.success(isEditing ? "Appointment updated" : "Appointment created")
       onOpenChange(false)
       onSuccess()
-    } catch {
+    } catch (error) {
+      console.error("[AppointmentSheet] Error:", error)
       toast.error("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
+  function toggleReminder(val: number) {
+    setReminderRules(prev => 
+      prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+    )
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-5">
+        <SheetHeader className="mb-4">
           <SheetTitle>
             {isEditing ? "Edit Appointment" : "New Appointment"}
           </SheetTitle>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-4 py-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 pb-8">
+          {/* Status */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="apt-status">Status</Label>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as AppointmentStatus)}
+            >
+              <SelectTrigger id="apt-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="rescheduled">Rescheduled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Title */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="apt-title">Title</Label>
@@ -169,44 +247,44 @@ export function AppointmentSheet({
             />
           </div>
 
-          {/* Category */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="apt-category">Category</Label>
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(v as AppointmentCategory)}
-            >
-              <SelectTrigger id="apt-category">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Subcategory */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="apt-sub">Subcategory (optional)</Label>
-            <Input
-              id="apt-sub"
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder="e.g. Dental cleaning"
-            />
+          {/* Category & Sub */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="apt-category">Category</Label>
+              <Select
+                value={category}
+                onValueChange={(v) => setCategory(v as AppointmentCategory)}
+              >
+                <SelectTrigger id="apt-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="apt-sub">Subcategory</Label>
+              <Input
+                id="apt-sub"
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
           </div>
 
           {/* Family Members */}
           <div className="flex flex-col gap-1.5">
             <Label>Family Members</Label>
-            <div className="flex flex-col gap-3 p-3 border rounded-md max-h-40 overflow-y-auto">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 p-3 border rounded-md min-h-[3rem] max-h-40 overflow-y-auto">
                 {members.length === 0 ? (
-                  <div className="text-sm text-center text-muted-foreground">
-                    No family members yet. Add one first.
+                  <div className="text-xs text-center w-full text-muted-foreground py-2">
+                    No family members found.
                   </div>
                 ) : (
                   members.map((m) => (
@@ -224,8 +302,8 @@ export function AppointmentSheet({
                           }
                         }}
                       />
-                      <Label htmlFor={`member-${m._id}`} className="font-normal cursor-pointer">
-                        {m.name} ({m.role})
+                      <Label htmlFor={`member-${m._id}`} className="text-sm font-normal cursor-pointer">
+                        {m.name}
                       </Label>
                     </div>
                   ))
@@ -233,32 +311,55 @@ export function AppointmentSheet({
             </div>
           </div>
 
-          {/* Date + Time */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="apt-date">Date</Label>
-              <Input
-                id="apt-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+          {/* Timing Section */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Timing</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="apt-date" className="text-xs">Starts At</Label>
+                <Input
+                  id="apt-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 pt-6">
+                <Input
+                  id="apt-time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="apt-time">Time (optional)</Label>
-              <Input
-                id="apt-time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="apt-end-date" className="text-xs">Ends At (Optional)</Label>
+                <Input
+                  id="apt-end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 pt-6">
+                <Input
+                  id="apt-end-time"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           {/* Location */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="apt-location">Location (optional)</Label>
+            <Label htmlFor="apt-location">Location</Label>
             <Input
               id="apt-location"
               value={location}
@@ -267,51 +368,93 @@ export function AppointmentSheet({
             />
           </div>
 
-          {/* Notes */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="apt-notes">Notes (optional)</Label>
-            <textarea
-              id="apt-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional details…"
-              rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring resize-none"
-            />
+          {/* Reminders Section */}
+          <div className="flex flex-col gap-3 p-4 border rounded-lg">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Reminders</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {REMINDER_OPTIONS.map((opt) => (
+                <div key={opt.value} className="flex items-center gap-2">
+                  <Checkbox 
+                    id={`rem-${opt.value}`}
+                    checked={reminderRules.includes(opt.value)}
+                    onCheckedChange={() => toggleReminder(opt.value)}
+                  />
+                  <Label htmlFor={`rem-${opt.value}`} className="text-xs font-normal cursor-pointer leading-none">
+                    {opt.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Recurring */}
-          <div className="flex flex-col gap-2">
+          {/* Recurring Section */}
+          <div className="flex flex-col gap-4 p-4 border rounded-lg bg-muted/10">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="apt-recurring"
                 checked={isRecurring}
                 onCheckedChange={(v) => setIsRecurring(!!v)}
               />
-              <Label htmlFor="apt-recurring" className="cursor-pointer">
-                Recurring appointment
+              <Label htmlFor="apt-recurring" className="font-semibold cursor-pointer text-sm tracking-tight uppercase text-muted-foreground">
+                Recurring Appointment
               </Label>
             </div>
+            
             {isRecurring && (
-              <Select
-                value={frequency}
-                onValueChange={(v) =>
-                  setFrequency(v as "weekly" | "monthly" | "yearly")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Frequency</Label>
+                  <Select
+                    value={frequency}
+                    onValueChange={(v) => setFrequency(v as any)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Interval (Every X)</Label>
+                  <Input 
+                    type="number"
+                    min={1}
+                    value={interval}
+                    onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 col-span-2">
+                  <Label className="text-xs">End Recurrence Date (Optional)</Label>
+                  <Input 
+                    type="date"
+                    value={recurrenceEndDate}
+                    onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
             )}
           </div>
 
-          <SheetFooter className="px-0 pt-2">
+          {/* Notes */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="apt-notes">Notes</Label>
+            <textarea
+              id="apt-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional details…"
+              rows={4}
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring resize-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t sticky bottom-0 bg-background pb-2">
             <Button
               type="button"
               variant="outline"
@@ -319,14 +462,18 @@ export function AppointmentSheet({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || memberIds.length === 0}>
+            <Button 
+              type="submit" 
+              disabled={loading || memberIds.length === 0}
+              className="min-w-[120px]"
+            >
               {loading
                 ? "Saving…"
                 : isEditing
                   ? "Save Changes"
                   : "Create Appointment"}
             </Button>
-          </SheetFooter>
+          </div>
         </form>
       </SheetContent>
     </Sheet>
