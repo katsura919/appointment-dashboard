@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string
   password: string
   role: "admin" | "staff"
+  timezone?: string
   createdAt: Date
   comparePassword(candidate: string): Promise<boolean>
 }
@@ -16,6 +17,7 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 8 },
     role: { type: String, enum: ["admin", "staff"], default: "staff" },
+    timezone: { type: String, default: "UTC" },
   },
   { timestamps: true }
 )

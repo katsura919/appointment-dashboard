@@ -17,18 +17,33 @@ export interface IAppointment extends Document {
   title: string
   category: AppointmentCategory
   subcategory?: string
-  memberId: mongoose.Types.ObjectId
-  date: Date
-  time?: string
+  memberId?: mongoose.Types.ObjectId // legacy
+  memberIds: mongoose.Types.ObjectId[]
+  date?: Date // legacy
+  time?: string // legacy
+  startsAt: Date
+  endsAt?: Date
   location?: string
   notes?: string
   isRecurring: boolean
   recurrence?: {
     frequency: RecurrenceFrequency
+    interval: number
+    endDate?: Date
+    occurrences?: number
     nextDate?: Date
   }
+  reminderRules?: number[]
+  reminderDeliveries?: {
+    status: "pending" | "sent" | "failed"
+    scheduledFor: Date
+    sentAt?: Date
+  }[]
   status: AppointmentStatus
   reminderSent: boolean
+  deletedAt?: Date
+  createdBy?: mongoose.Types.ObjectId
+  updatedBy?: mongoose.Types.ObjectId
   createdAt: Date
   updatedAt: Date
 }
@@ -49,30 +64,49 @@ const AppointmentSchema = new Schema<IAppointment>(
     title: { type: String, required: true, trim: true },
     category: { type: String, enum: CATEGORIES, required: true },
     subcategory: { type: String, trim: true },
-    memberId: { type: Schema.Types.ObjectId, ref: "FamilyMember", required: true },
-    date: { type: Date, required: true },
-    time: { type: String },
+    memberId: { type: Schema.Types.ObjectId, ref: "FamilyMember" }, // legacy
+    memberIds: [{ type: Schema.Types.ObjectId, ref: "FamilyMember" }],
+    date: { type: Date }, // legacy
+    time: { type: String }, // legacy
+    startsAt: { type: Date, required: true },
+    endsAt: { type: Date },
     location: { type: String, trim: true },
     notes: { type: String, trim: true },
     isRecurring: { type: Boolean, default: false },
     recurrence: {
       frequency: { type: String, enum: ["weekly", "monthly", "yearly"] },
+      interval: { type: Number, default: 1 },
+      endDate: { type: Date },
+      occurrences: { type: Number },
       nextDate: { type: Date },
     },
+    reminderRules: [{ type: Number }],
+    reminderDeliveries: [
+      {
+        status: { type: String, enum: ["pending", "sent", "failed"], default: "pending" },
+        scheduledFor: { type: Date },
+        sentAt: { type: Date },
+      },
+    ],
     status: {
       type: String,
       enum: ["upcoming", "completed", "cancelled", "rescheduled"],
       default: "upcoming",
     },
     reminderSent: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 )
 
 // Compound index for efficient dashboard queries
-AppointmentSchema.index({ userId: 1, date: 1 })
+AppointmentSchema.index({ userId: 1, date: 1 }) // legacy
+AppointmentSchema.index({ userId: 1, startsAt: 1, status: 1 })
 AppointmentSchema.index({ userId: 1, category: 1 })
-AppointmentSchema.index({ userId: 1, memberId: 1 })
+AppointmentSchema.index({ userId: 1, memberId: 1 }) // legacy
+AppointmentSchema.index({ userId: 1, memberIds: 1 })
 
 const Appointment: Model<IAppointment> =
   mongoose.models.Appointment ??
