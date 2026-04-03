@@ -49,3 +49,22 @@ export interface AppointmentResponse {
   reminderSent: boolean
   createdAt: string
 }
+
+export interface WellBeingLogResponse {
+  _id: string
+  userId: string
+  date: string
+  metrics: {
+    moodScore?: number
+    stressLevel?: number
+    energyLevel?: number
+    sleepHours?: number
+    sleepQuality?: number
+    activityLevel?: number
+    hydrationScore?: number
+  }
+  tags?: string[]
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}

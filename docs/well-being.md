@@ -1,7 +1,7 @@
 # Well-Being Tracking Feature Plan
 
 ## 1. Objective
-To implement a holistic well-being tracking system within the dashboard that allows users (and family members) to log, monitor, and analyze their physical, mental, and emotional health over time.
+To implement a holistic well-being tracking system within the dashboard that allows users to log, monitor, and analyze their physical, mental, and emotional health over time.
 
 ## 2. Key Aspects to Measure
 We will categorize well-being into four core pillars. By keeping the tracking lightweight but multi-dimensional, we increase adherence while gaining valuable insights.
@@ -58,24 +58,50 @@ Raw data is only helpful if we can interpret it. The dashboard will analyze the 
 
 ---
 
-## 4. Proposed Data Schema (Conceptual)
+## 4. Proposed Data Schema (Mongoose / TypeScript)
 
-```json
-{
-  "userId": "ObjectId (User)",
-  "memberId": "ObjectId (Family Member - optional, to track kids/partner)",
-  "date": "YYYY-MM-DD",
-  "metrics": {
-    "mood": "Number (1-5)",
-    "stress": "Number (1-5)",
-    "energy": "Number (1-5)",
-    "sleepHours": "Number",
-    "sleepQuality": "Number (1-5)",
-    "activityLevel": "Number (1-5)"
-  },
-  "tags": ["Array of Strings"],
-  "notes": "String"
+```typescript
+import mongoose, { Schema, Document, Model } from "mongoose"
+
+export interface IWellBeingLog extends Document {
+  userId: mongoose.Types.ObjectId
+  date: Date
+  metrics: {
+    moodScore?: number       // 1-5
+    stressLevel?: number     // 1-5
+    energyLevel?: number     // 1-5
+    sleepHours?: number      
+    sleepQuality?: number    // 1-5
+    activityLevel?: number   // 1-5
+    hydrationScore?: number  // 1-5
+  }
+  tags?: string[]
+  notes?: string
+  createdAt: Date
+  updatedAt: Date
 }
+
+export const WellBeingLogSchema = new Schema<IWellBeingLog>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    date: { type: Date, required: true },
+    metrics: {
+      moodScore: { type: Number, min: 1, max: 5 },
+      stressLevel: { type: Number, min: 1, max: 5 },
+      energyLevel: { type: Number, min: 1, max: 5 },
+      sleepHours: { type: Number, min: 0, max: 24 },
+      sleepQuality: { type: Number, min: 1, max: 5 },
+      activityLevel: { type: Number, min: 1, max: 5 },
+      hydrationScore: { type: Number, min: 1, max: 5 },
+    },
+    tags: [{ type: String, trim: true }],
+    notes: { type: String, trim: true },
+  },
+  { timestamps: true }
+)
+
+// Index for efficient querying by user and date sorting
+WellBeingLogSchema.index({ userId: 1, date: -1 })
 ```
 
 ## 5. Next Steps for Implementation
