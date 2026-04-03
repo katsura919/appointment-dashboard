@@ -2,6 +2,8 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import Appointment from "@/models/Appointment"
+import FamilyMember from "@/models/FamilyMember"
+import User from "@/models/User"
 import { auth } from "@/auth"
 
 const CATEGORIES = [
@@ -45,10 +47,10 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await auth();
     if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const { id } = await params
     await connectDB()
 
     const appointment = await Appointment.findOne({ _id: id, userId: session.user.id })
@@ -58,8 +60,9 @@ export async function GET(
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ appointment }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[Appointments GET id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }
 
@@ -67,10 +70,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await auth();
     if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const { id } = await params
     const body = await request.json()
     
     if (!body.memberIds && body.memberId) {
@@ -94,8 +97,9 @@ export async function PUT(
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ appointment }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[Appointments PUT id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }
 
@@ -103,17 +107,18 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await auth();
     if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const { id } = await params
     await connectDB()
 
     const appointment = await Appointment.findOneAndDelete({ _id: id, userId: session.user.id })
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ message: "Appointment deleted" }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[Appointments DELETE id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }

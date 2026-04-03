@@ -6,6 +6,8 @@ export interface IFamilyMember extends Document {
   role: "mom" | "dad" | "child" | "other"
   color?: string
   dateOfBirth?: Date
+  contactNumber?: string
+  email?: string
   avatar?: string
   deletedAt?: Date
   createdBy?: mongoose.Types.ObjectId
@@ -21,6 +23,8 @@ const FamilyMemberSchema = new Schema<IFamilyMember>(
     role: { type: String, enum: ["mom", "dad", "child", "other"], required: true },
     color: { type: String, trim: true },
     dateOfBirth: { type: Date },
+    contactNumber: { type: String, trim: true },
+    email: { type: String, trim: true },
     avatar: { type: String },
     deletedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },

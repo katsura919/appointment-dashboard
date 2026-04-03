@@ -124,10 +124,10 @@ export default function DashboardPage() {
 
   const now = new Date();
   const todayCount = appointments.filter(
-    (a) => a.status === "upcoming" && isToday(new Date(a.date)),
+    (a) => a.status === "upcoming" && isToday(new Date(a.startsAt)),
   ).length;
   const upcomingCount = appointments.filter((a) => {
-    const d = new Date(a.date);
+    const d = new Date(a.startsAt);
     return (
       a.status === "upcoming" &&
       isFuture(d) &&
@@ -141,8 +141,8 @@ export default function DashboardPage() {
   const overdueCount = appointments.filter(
     (a) =>
       a.status === "upcoming" &&
-      isPast(new Date(a.date)) &&
-      !isToday(new Date(a.date)),
+      isPast(new Date(a.startsAt)) &&
+      !isToday(new Date(a.startsAt)),
   ).length;
   const totalUpcoming = appointments.filter(
     (a) => a.status === "upcoming",

@@ -8,14 +8,16 @@ const UpdateFamilyMemberSchema = z.object({
   role: z.enum(["mom", "dad", "child", "other"]).optional(),
   dateOfBirth: z.string().datetime().optional(),
   avatar: z.string().optional(),
+  contactNumber: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
 })
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const { id } = await params
     await connectDB()
 
     const member = await FamilyMember.findById(id)
@@ -24,8 +26,9 @@ export async function GET(
     }
 
     return Response.json({ member }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[FamilyMember GET id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }
 
@@ -33,8 +36,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const { id } = await params
     const body = await request.json()
     const parsed = UpdateFamilyMemberSchema.safeParse(body)
 
@@ -57,8 +60,9 @@ export async function PUT(
     }
 
     return Response.json({ member }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[FamilyMember PUT id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }
 
@@ -66,8 +70,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const { id } = await params
     await connectDB()
 
     const member = await FamilyMember.findByIdAndDelete(id)
@@ -76,7 +80,8 @@ export async function DELETE(
     }
 
     return Response.json({ message: "Family member deleted" }, { status: 200 })
-  } catch {
-    return Response.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error(`[FamilyMember DELETE id=${id}] Error:`, error)
+    return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 })
   }
 }

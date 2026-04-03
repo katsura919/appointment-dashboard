@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { connectDB } from "@/lib/mongodb";
 import Appointment from "@/models/Appointment";
+import FamilyMember from "@/models/FamilyMember";
+import User from "@/models/User";
 import { auth } from "@/auth";
 
 const CATEGORIES = [
@@ -95,10 +97,11 @@ export async function GET(request: NextRequest) {
       .sort({ startsAt: 1, date: 1 });
 
     return Response.json({ appointments }, { status: 200 });
-  } catch (error) {
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    } catch (error) {
+      console.error("[Appointments GET] Error fetching appointments:", error);
+      return Response.json({ error: "Internal server error", details: String(error) }, { status: 500 });
+    }
   }
-}
 
 export async function POST(request: NextRequest) {
   try {
