@@ -1,69 +1,211 @@
 "use client"
 
+import "react-big-calendar/lib/css/react-big-calendar.css"
+
 import * as React from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { PlusIcon, FilterIcon } from "lucide-react"
+import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar"
+import { format, parse, startOfWeek, getDay, addHours } from "date-fns"
+import { enUS } from "date-fns/locale"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarDaysIcon,
+  LayoutGridIcon,
+  ListIcon,
+  ClockIcon,
+  PlusIcon,
+} from "lucide-react"
+
 import { DashboardShell } from "@/components/dashboard-shell"
-import { AppointmentCard } from "@/components/appointment-card"
 import { AppointmentSheet } from "@/components/appointment-sheet"
 import { CategoryBadge } from "@/components/category-badge"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { CATEGORY_OPTIONS, type AppointmentCategory } from "@/lib/categories"
+import { CATEGORY_META, type AppointmentCategory } from "@/lib/categories"
 import { useUserId } from "@/hooks/use-user-id"
-import type { AppointmentResponse, AppointmentStatus, FamilyMemberResponse } from "@/lib/types"
+import type { AppointmentResponse } from "@/lib/types"
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "all", label: "All statuses" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "rescheduled", label: "Rescheduled" },
+// ─── date-fns localizer ───────────────────────────────────────────────────────
+
+const locales = { "en-US": enUS }
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { locale: enUS }),
+  getDay,
+  locales,
+})
+
+// ─── Category event colors (raw CSS values for rbc) ──────────────────────────
+
+const CATEGORY_COLORS: Record<AppointmentCategory, { bg: string; color: string }> = {
+  health_wellness:       { bg: "#dbeafe", color: "#1d4ed8" },
+  education_development: { bg: "#ede9fe", color: "#7c3aed" },
+  activities_enrichment: { bg: "#dcfce7", color: "#16a34a" },
+  life_logistics:        { bg: "#fed7aa", color: "#c2410c" },
+  family_relationship:   { bg: "#ffe4e6", color: "#be123c" },
+  administrative:        { bg: "#f1f5f9", color: "#475569" },
+  mom_personal_care:     { bg: "#ccfbf1", color: "#0f766e" },
+}
+
+// ─── Calendar event type ──────────────────────────────────────────────────────
+
+interface CalendarEvent {
+  id: string
+  title: string
+  start: Date
+  end: Date
+  resource: AppointmentResponse
+}
+
+function toCalendarEvents(appointments: AppointmentResponse[]): CalendarEvent[] {
+  return appointments.map((a) => {
+    const start = new Date(a.date)
+    if (a.time) {
+      const [h, m] = a.time.split(":").map(Number)
+      start.setHours(h, m, 0, 0)
+    }
+    const end = addHours(start, 1)
+    return { id: a._id, title: a.title, start, end, resource: a }
+  })
+}
+
+// ─── Custom toolbar ───────────────────────────────────────────────────────────
+
+type CalendarView = "month" | "week" | "day" | "agenda"
+
+interface ToolbarProps {
+  date: Date
+  view: CalendarView
+  label: string
+  onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void
+  onView: (view: CalendarView) => void
+  onNew: () => void
+}
+
+const VIEW_OPTIONS: { value: CalendarView; label: string; icon: React.ElementType }[] = [
+  { value: "month",  label: "Month",  icon: LayoutGridIcon },
+  { value: "week",   label: "Week",   icon: CalendarDaysIcon },
+  { value: "day",    label: "Day",    icon: ClockIcon },
+  { value: "agenda", label: "Agenda", icon: ListIcon },
 ]
+
+function CalendarToolbar({ date, view, label, onNavigate, onView, onNew }: ToolbarProps) {
+  return (
+    <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      {/* Navigation */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" onClick={() => onNavigate("PREV")}>
+          <ChevronLeftIcon className="size-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onNavigate("TODAY")}>
+          Today
+        </Button>
+        <Button variant="outline" size="icon" onClick={() => onNavigate("NEXT")}>
+          <ChevronRightIcon className="size-4" />
+        </Button>
+        <span className="text-base font-semibold ml-1">{label}</span>
+      </div>
+
+      {/* View switcher + New button */}
+      <div className="flex items-center gap-2">
+        <div className="flex rounded-md border overflow-hidden">
+          {VIEW_OPTIONS.map(({ value, label: vLabel, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => onView(value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-r last:border-r-0 ${
+                view === value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="size-3.5" />
+              <span className="hidden sm:inline">{vLabel}</span>
+            </button>
+          ))}
+        </div>
+        <Button size="sm" onClick={onNew}>
+          <PlusIcon className="size-4" />
+          <span className="hidden sm:inline">New</span>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Category legend ──────────────────────────────────────────────────────────
+
+function CategoryLegend({
+  active,
+  onToggle,
+}: {
+  active: Set<AppointmentCategory>
+  onToggle: (cat: AppointmentCategory) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {(Object.keys(CATEGORY_META) as AppointmentCategory[]).map((cat) => {
+        const meta = CATEGORY_META[cat]
+        const isOn = active.has(cat)
+        return (
+          <button
+            key={cat}
+            onClick={() => onToggle(cat)}
+            className={`transition-opacity ${isOn ? "opacity-100" : "opacity-40"}`}
+          >
+            <CategoryBadge category={cat} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Event component ──────────────────────────────────────────────────────────
+
+function EventComponent({ event }: { event: CalendarEvent }) {
+  const apt = event.resource
+  const isCompleted = apt.status === "completed"
+  const isCancelled = apt.status === "cancelled"
+
+  return (
+    <span
+      className={`block truncate text-xs font-medium ${
+        isCompleted || isCancelled ? "line-through opacity-60" : ""
+      }`}
+      title={`${apt.title} — ${apt.memberId.name}`}
+    >
+      {apt.title}
+    </span>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
   const userId = useUserId()
-  const searchParams = useSearchParams()
-  const router = useRouter()
-
-  const categoryParam = searchParams.get("category") as AppointmentCategory | null
-  const openNew = searchParams.get("new") === "1"
 
   const [appointments, setAppointments] = React.useState<AppointmentResponse[]>([])
-  const [members, setMembers] = React.useState<FamilyMemberResponse[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [sheetOpen, setSheetOpen] = React.useState(openNew)
+  const [view, setView] = React.useState<CalendarView>("month")
+  const [date, setDate] = React.useState(new Date())
+  const [activeCategories, setActiveCategories] = React.useState<Set<AppointmentCategory>>(
+    new Set(Object.keys(CATEGORY_META) as AppointmentCategory[])
+  )
+
+  const [sheetOpen, setSheetOpen] = React.useState(false)
   const [editingAppointment, setEditingAppointment] =
     React.useState<AppointmentResponse | null>(null)
-
-  const [filterCategory, setFilterCategory] = React.useState<string>(
-    categoryParam ?? "all"
-  )
-  const [filterMember, setFilterMember] = React.useState("all")
-  const [filterStatus, setFilterStatus] = React.useState("upcoming")
-
-  // Sync category filter when URL changes
-  React.useEffect(() => {
-    if (categoryParam) setFilterCategory(categoryParam)
-  }, [categoryParam])
+  const [defaultDate, setDefaultDate] = React.useState<string | undefined>()
 
   const fetchAppointments = React.useCallback(async () => {
     if (!userId) return
     setLoading(true)
     try {
-      const params = new URLSearchParams({ userId })
-      if (filterCategory !== "all") params.set("category", filterCategory)
-      if (filterMember !== "all") params.set("memberId", filterMember)
-      if (filterStatus !== "all") params.set("status", filterStatus)
-
-      const res = await fetch(`/api/appointments?${params}`)
+      const res = await fetch(`/api/appointments?userId=${userId}`)
       const data = await res.json()
       setAppointments(data.appointments ?? [])
     } catch {
@@ -71,37 +213,45 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [userId, filterCategory, filterMember, filterStatus])
+  }, [userId])
 
   React.useEffect(() => {
     fetchAppointments()
   }, [fetchAppointments])
 
-  React.useEffect(() => {
-    if (!userId) return
-    fetch(`/api/family-members?userId=${userId}`)
-      .then((r) => r.json())
-      .then((d) => setMembers(d.members ?? []))
-      .catch(() => {})
-  }, [userId])
+  // Filter by active categories
+  const visibleAppointments = React.useMemo(
+    () => appointments.filter((a) => activeCategories.has(a.category)),
+    [appointments, activeCategories]
+  )
 
-  async function handleStatusChange(id: string, status: AppointmentStatus) {
-    await fetch(`/api/appointments/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+  const events = React.useMemo(
+    () => toCalendarEvents(visibleAppointments),
+    [visibleAppointments]
+  )
+
+  function toggleCategory(cat: AppointmentCategory) {
+    setActiveCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(cat)) {
+        if (next.size === 1) return prev // keep at least one active
+        next.delete(cat)
+      } else {
+        next.add(cat)
+      }
+      return next
     })
-    fetchAppointments()
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this appointment?")) return
-    await fetch(`/api/appointments/${id}`, { method: "DELETE" })
-    fetchAppointments()
+  function handleSelectEvent(event: CalendarEvent) {
+    setEditingAppointment(event.resource)
+    setDefaultDate(undefined)
+    setSheetOpen(true)
   }
 
-  function handleEdit(a: AppointmentResponse) {
-    setEditingAppointment(a)
+  function handleSelectSlot({ start }: { start: Date }) {
+    setEditingAppointment(null)
+    setDefaultDate(format(start, "yyyy-MM-dd"))
     setSheetOpen(true)
   }
 
@@ -109,108 +259,110 @@ export default function AppointmentsPage() {
     setSheetOpen(open)
     if (!open) {
       setEditingAppointment(null)
-      // clear ?new=1 from URL without re-rendering
-      if (openNew) router.replace("/appointments")
+      setDefaultDate(undefined)
+    }
+  }
+
+  // eventPropGetter — colors by category, dims completed/cancelled
+  function eventPropGetter(event: CalendarEvent) {
+    const cat = event.resource.category as AppointmentCategory
+    const colors = CATEGORY_COLORS[cat] ?? { bg: "#f1f5f9", color: "#475569" }
+    const isDimmed =
+      event.resource.status === "completed" || event.resource.status === "cancelled"
+
+    return {
+      style: {
+        backgroundColor: colors.bg,
+        color: colors.color,
+        opacity: isDimmed ? 0.55 : 1,
+        border: "none",
+      },
     }
   }
 
   return (
     <DashboardShell title="Appointments">
-      <div className="flex flex-col gap-6 py-4 md:gap-6 md:py-6">
-        {/* Toolbar */}
-        <div className="flex flex-col gap-3 px-4 lg:px-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            <FilterIcon className="size-4 text-muted-foreground shrink-0" />
+      <div className="flex flex-col gap-2 py-4 px-4 lg:px-6 md:py-6">
+        {/* Custom toolbar */}
+        <CalendarToolbar
+          date={date}
+          view={view}
+          label={format(
+            date,
+            view === "month"
+              ? "MMMM yyyy"
+              : view === "week"
+                ? "'Week of' MMM d, yyyy"
+                : view === "day"
+                  ? "EEEE, MMMM d, yyyy"
+                  : "MMMM yyyy"
+          )}
+          onNavigate={(action) => {
+            const d = new Date(date)
+            if (action === "TODAY") {
+              setDate(new Date())
+            } else if (action === "PREV") {
+              if (view === "month") d.setMonth(d.getMonth() - 1)
+              else if (view === "week") d.setDate(d.getDate() - 7)
+              else if (view === "day") d.setDate(d.getDate() - 1)
+              else d.setMonth(d.getMonth() - 1)
+              setDate(d)
+            } else {
+              if (view === "month") d.setMonth(d.getMonth() + 1)
+              else if (view === "week") d.setDate(d.getDate() + 7)
+              else if (view === "day") d.setDate(d.getDate() + 1)
+              else d.setMonth(d.getMonth() + 1)
+              setDate(d)
+            }
+          }}
+          onView={setView}
+          onNew={() => {
+            setEditingAppointment(null)
+            setDefaultDate(undefined)
+            setSheetOpen(true)
+          }}
+        />
 
-            {/* Category filter */}
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Category legend / filter */}
+        <CategoryLegend active={activeCategories} onToggle={toggleCategory} />
 
-            {/* Member filter */}
-            <Select value={filterMember} onValueChange={setFilterMember}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All members" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All members</SelectItem>
-                {members.map((m) => (
-                  <SelectItem key={m._id} value={m._id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Status filter */}
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button
-            onClick={() => {
-              setEditingAppointment(null)
-              setSheetOpen(true)
-            }}
-          >
-            <PlusIcon className="size-4" />
-            New Appointment
-          </Button>
-        </div>
-
-        {/* Active category label */}
-        {filterCategory !== "all" && (
-          <div className="px-4 lg:px-6">
-            <CategoryBadge
-              category={filterCategory as AppointmentCategory}
-              className="text-sm px-3 py-1"
+        {/* Calendar */}
+        {loading ? (
+          <Skeleton className="h-[calc(100vh-16rem)] w-full rounded-lg" />
+        ) : (
+          <div className="h-[calc(100vh-16rem)] min-h-[520px]">
+            <Calendar
+              localizer={localizer}
+              events={events}
+              view={view}
+              date={date}
+              onView={(v) => setView(v as CalendarView)}
+              onNavigate={setDate}
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSelectSlot}
+              selectable
+              eventPropGetter={eventPropGetter}
+              components={{
+                event: EventComponent,
+                toolbar: () => null, // hide built-in toolbar (we use our own above)
+              }}
+              popup
+              showMultiDayTimes
+              formats={{
+                timeGutterFormat: (d: Date) => format(d, "h a"),
+                eventTimeRangeFormat: ({ start }: { start: Date }) =>
+                  format(start, "h:mm a"),
+              }}
             />
           </div>
         )}
 
-        {/* List */}
-        {loading ? (
-          <div className="grid gap-3 px-4 lg:px-6 sm:grid-cols-2 xl:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
-            ))}
-          </div>
-        ) : appointments.length === 0 ? (
-          <div className="px-4 lg:px-6 py-12 text-center text-muted-foreground text-sm">
-            No appointments found. Add one to get started.
-          </div>
-        ) : (
-          <div className="grid gap-3 px-4 lg:px-6 sm:grid-cols-2 xl:grid-cols-3">
-            {appointments.map((a) => (
-              <AppointmentCard
-                key={a._id}
-                appointment={a}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+        {/* Appointment count */}
+        {!loading && (
+          <p className="text-xs text-muted-foreground text-right">
+            {visibleAppointments.length} appointment
+            {visibleAppointments.length !== 1 ? "s" : ""} shown
+          </p>
         )}
       </div>
 
@@ -220,6 +372,7 @@ export default function AppointmentsPage() {
           onOpenChange={handleSheetClose}
           userId={userId}
           appointment={editingAppointment}
+          defaultDate={defaultDate}
           onSuccess={fetchAppointments}
         />
       )}

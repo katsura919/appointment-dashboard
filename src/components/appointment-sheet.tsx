@@ -29,6 +29,7 @@ interface AppointmentSheetProps {
   onOpenChange: (open: boolean) => void
   userId: string
   appointment?: AppointmentResponse | null
+  defaultDate?: string // ISO date string, used when creating from a calendar slot
   onSuccess: () => void
 }
 
@@ -37,6 +38,7 @@ export function AppointmentSheet({
   onOpenChange,
   userId,
   appointment,
+  defaultDate,
   onSuccess,
 }: AppointmentSheetProps) {
   const isEditing = !!appointment
@@ -86,7 +88,7 @@ export function AppointmentSheet({
       setCategory("health_wellness")
       setSubcategory("")
       setMemberId("")
-      setDate("")
+      setDate(defaultDate ?? "")
       setTime("")
       setLocation("")
       setNotes("")
