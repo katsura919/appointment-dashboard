@@ -16,13 +16,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import { useAuthStore } from "@/store/auth-store"
+import { useSession } from "next-auth/react"
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -176,7 +173,22 @@ const data = {
   ],
 }
 
+const FALLBACK_USER = { name: "User", email: "", avatar: "" }
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const storeUser = useAuthStore((s) => s.user)
+  const { data: session } = useSession()
+
+  const sidebarUser = storeUser
+    ? { name: storeUser.name, email: storeUser.email, avatar: "" }
+    : session?.user
+      ? {
+          name: session.user.name ?? "User",
+          email: session.user.email ?? "",
+          avatar: session.user.image ?? "",
+        }
+      : FALLBACK_USER
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -200,7 +212,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarUser} />
       </SidebarFooter>
     </Sidebar>
   )

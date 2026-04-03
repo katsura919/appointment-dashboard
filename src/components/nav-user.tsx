@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -21,6 +22,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { useAuthStore } from "@/store/auth-store"
+import { signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 
 export function NavUser({
   user,
@@ -32,6 +36,18 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const clearAuth = useAuthStore((s) => s.clearAuth)
+  const { data: session } = useSession()
+
+  async function handleLogout() {
+    clearAuth()
+    document.cookie = "auth-token=; path=/; max-age=0"
+    if (session) {
+      await signOut({ redirect: false })
+    }
+    router.push("/login")
+  }
 
   return (
     <SidebarMenu>
@@ -94,7 +110,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOutIcon
               />
               Log out

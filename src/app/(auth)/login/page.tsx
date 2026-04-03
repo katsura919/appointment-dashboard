@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AuthForm } from "@/components/auth-form"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
@@ -11,7 +12,9 @@ export default function LoginPage() {
           </div>
           Acme Inc.
         </a>
-        <AuthForm mode="login" />
+        <Suspense>
+          <AuthForm mode="login" />
+        </Suspense>
       </div>
     </div>
   )

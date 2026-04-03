@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AuthForm } from "@/components/auth-form"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
@@ -11,7 +12,9 @@ export default function RegisterPage() {
           </div>
           Acme Inc.
         </a>
-        <AuthForm mode="register" />
+        <Suspense>
+          <AuthForm mode="register" />
+        </Suspense>
       </div>
     </div>
   )

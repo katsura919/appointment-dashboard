@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthSessionProvider from "@/components/session-provider";
+import { Toaster } from "sonner";
 
 const fontSans = Outfit({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({
         >
           <TooltipProvider>
             <AuthSessionProvider>{children}</AuthSessionProvider>
+            <Toaster richColors position="top-right" />
           </TooltipProvider>
         </ThemeProvider>
       </body>
