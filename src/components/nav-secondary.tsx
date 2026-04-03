@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import { useTheme } from "next-themes"
+import { MoonIcon, SunIcon } from "lucide-react"
 
 import {
   SidebarGroup,
@@ -20,6 +22,8 @@ export function NavSecondary({
     icon: React.ReactNode
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const { resolvedTheme, setTheme } = useTheme()
+
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
@@ -34,6 +38,16 @@ export function NavSecondary({
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              tooltip="Toggle theme"
+            >
+              <SunIcon className="dark:hidden" />
+              <MoonIcon className="hidden dark:block" />
+              <span>Theme</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
