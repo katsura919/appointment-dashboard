@@ -42,6 +42,7 @@ export function NavSecondary({
             <SidebarMenuButton
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               tooltip="Toggle theme"
+              className="cursor-pointer"
             >
               <SunIcon className="dark:hidden" />
               <MoonIcon className="hidden dark:block" />
