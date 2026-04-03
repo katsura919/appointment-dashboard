@@ -18,7 +18,7 @@ const CATEGORIES = [
 
 const RecurrenceSchema = z.object({
   frequency: z.enum(["weekly", "monthly", "yearly"]),
-  interval: z.number().optional(),
+  interval: z.number().default(1),
   endDate: z.string().datetime().optional(),
   occurrences: z.number().optional(),
   nextDate: z.string().datetime().optional(),
@@ -38,6 +38,7 @@ const CreateAppointmentSchema = z.object({
   notes: z.string().trim().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: RecurrenceSchema.optional(),
+  reminderRules: z.array(z.number()).optional(),
 });
 
 export async function GET(request: NextRequest) {

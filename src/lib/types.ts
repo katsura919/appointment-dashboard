@@ -45,6 +45,7 @@ export interface AppointmentResponse {
     nextDate?: string
   }
   status: AppointmentStatus
+  reminderRules?: number[]
   reminderSent: boolean
   createdAt: string
 }
