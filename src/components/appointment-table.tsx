@@ -181,7 +181,7 @@ function TitleCell({
         <DrawerHeader className="gap-1">
           <DrawerTitle>{appointment.title}</DrawerTitle>
           <DrawerDescription>
-            {format(new Date(appointment.date), "EEEE, MMMM d, yyyy")}
+            {format(new Date(appointment.startsAt || appointment.date || ""), "EEEE, MMMM d, yyyy")}
             {appointment.time && ` · ${appointment.time}`}
           </DrawerDescription>
         </DrawerHeader>
@@ -197,16 +197,20 @@ function TitleCell({
                 <span>{appointment.subcategory}</span>
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2">
               <span className="text-muted-foreground w-24 shrink-0">For</span>
-              <div className="flex items-center gap-1.5">
-                <div className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase">
-                  {appointment.memberId.name.charAt(0)}
-                </div>
-                <span>{appointment.memberId.name}</span>
-                <span className="text-muted-foreground capitalize">
-                  ({appointment.memberId.role})
-                </span>
+              <div className="flex flex-col gap-1.5 pl-24 -mt-6">
+                {(appointment.memberIds?.length > 0 ? appointment.memberIds : (appointment.memberId ? [appointment.memberId] : [])).map(m => (
+                  <div key={m._id} className="flex items-center gap-1.5">
+                    <div className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase">
+                      {m.name.charAt(0)}
+                    </div>
+                    <span>{m.name}</span>
+                    <span className="text-muted-foreground capitalize">
+                      ({m.role})
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -226,12 +230,12 @@ function TitleCell({
                 </span>
               </div>
             )}
-            {appointment.time && (
+            {(appointment.startsAt || appointment.time) && (
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground w-24 shrink-0">Time</span>
                 <span className="flex items-center gap-1">
                   <ClockIcon className="size-3.5" />
-                  {appointment.time}
+                  {appointment.startsAt ? format(new Date(appointment.startsAt), "h:mm a") : appointment.time}
                 </span>
               </div>
             )}
@@ -355,35 +359,54 @@ export function AppointmentTable({
       {
         id: "member",
         header: "For",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-1.5">
-            <div className="size-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase shrink-0">
-              {row.original.memberId.name.charAt(0)}
+        cell: ({ row }) => {
+          const members = row.original.memberIds?.length > 0 ? row.original.memberIds : (row.original.memberId ? [row.original.memberId] : []);
+          const displayed = members.slice(0, 2);
+          const excess = members.length - 2;
+          return (
+            <div className="flex items-center gap-1.5">
+              <div className="flex -space-x-1.5 min-w-10">
+                {displayed.map(m => (
+                  <div key={m._id} className="size-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase shrink-0 border-2 border-background z-10" title={m.name}>
+                    {m.name.charAt(0)}
+                  </div>
+                ))}
+                {excess > 0 && (
+                  <div className="size-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase shrink-0 border-2 border-background z-0">
+                    +{excess}
+                  </div>
+                )}
+              </div>
+              <span className="text-sm">
+                {displayed.map(m => m.name).join(", ")}
+                {excess > 0 ? `, +${excess}` : ""}
+              </span>
             </div>
-            <span className="text-sm">{row.original.memberId.name}</span>
-          </div>
-        ),
+          )
+        },
       },
       {
         accessorKey: "date",
         header: "Date",
         cell: ({ row }) => (
           <span className="tabular-nums text-sm text-muted-foreground">
-            {format(new Date(row.original.date), "MMM d, yyyy")}
+            {format(new Date(row.original.startsAt || row.original.date || ""), "MMM d, yyyy")}
           </span>
         ),
       },
       {
         accessorKey: "time",
         header: "Time",
-        cell: ({ row }) =>
-          row.original.time ? (
+        cell: ({ row }) => {
+          const timeStr = row.original.startsAt ? format(new Date(row.original.startsAt), "h:mm a") : row.original.time;
+          return timeStr ? (
             <span className="tabular-nums text-sm text-muted-foreground">
-              {row.original.time}
+              {timeStr}
             </span>
           ) : (
             <span className="text-muted-foreground/40 text-sm">—</span>
-          ),
+          )
+        },
       },
       {
         accessorKey: "status",
@@ -497,7 +520,7 @@ export function AppointmentTable({
     today: appointments.filter(
       (a) =>
         a.status === "upcoming" &&
-        format(new Date(a.date), "yyyy-MM-dd") === todayStr
+        format(new Date(a.startsAt || a.date || ""), "yyyy-MM-dd") === todayStr
     ).length,
     upcoming: appointments.filter((a) => a.status === "upcoming").length,
     completed: appointments.filter((a) => a.status === "completed").length,
@@ -513,7 +536,7 @@ export function AppointmentTable({
         appointments.filter(
           (a) =>
             a.status === "upcoming" &&
-            format(new Date(a.date), "yyyy-MM-dd") === todayStr
+            format(new Date(a.startsAt || a.date || ""), "yyyy-MM-dd") === todayStr
         )
       )
     } else if (value === "upcoming") {

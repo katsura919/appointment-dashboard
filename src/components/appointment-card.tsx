@@ -63,7 +63,11 @@ export function AppointmentCard({
   onDelete,
 }: AppointmentCardProps) {
   const statusConfig = STATUS_CONFIG[appointment.status]
-  const appointmentDate = new Date(appointment.date)
+  const appointmentDate = new Date(appointment.startsAt || appointment.date || "")
+  const timeStr = appointment.startsAt ? format(appointmentDate, "h:mm a") : appointment.time
+  const members = appointment.memberIds?.length > 0 ? appointment.memberIds : (appointment.memberId ? [appointment.memberId] : [])
+  const displayedMembers = members.slice(0, 2)
+  const excessCount = members.length - 2
 
   return (
     <Card className="group">
@@ -152,10 +156,10 @@ export function AppointmentCard({
             <CalendarIcon className="size-3.5 shrink-0" />
             {format(appointmentDate, "MMM d, yyyy")}
           </span>
-          {appointment.time && (
+          {timeStr && (
             <span className="flex items-center gap-1.5">
               <ClockIcon className="size-3.5 shrink-0" />
-              {appointment.time}
+              {timeStr}
             </span>
           )}
         </div>
@@ -166,10 +170,22 @@ export function AppointmentCard({
           </span>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
-          <div className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase">
-            {appointment.memberId.name.charAt(0)}
+          <div className="flex -space-x-1.5">
+            {displayedMembers.map(m => (
+              <div key={m._id} className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold uppercase border border-background z-10" title={m.name}>
+                {m.name.charAt(0)}
+              </div>
+            ))}
+            {excessCount > 0 && (
+              <div className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold border border-background z-0">
+                +{excessCount}
+              </div>
+            )}
           </div>
-          <span className="text-xs">{appointment.memberId.name}</span>
+          <span className="text-xs ml-1">
+            {displayedMembers.map(m => m.name).join(", ")}
+            {excessCount > 0 ? `, +${excessCount}` : ""}
+          </span>
         </div>
       </CardContent>
     </Card>

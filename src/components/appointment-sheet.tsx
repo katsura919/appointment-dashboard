@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { format } from "date-fns"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,7 +49,7 @@ export function AppointmentSheet({
     "health_wellness"
   )
   const [subcategory, setSubcategory] = React.useState("")
-  const [memberId, setMemberId] = React.useState("")
+  const [memberIds, setMemberIds] = React.useState<string[]>([])
   const [date, setDate] = React.useState("")
   const [time, setTime] = React.useState("")
   const [location, setLocation] = React.useState("")
@@ -76,9 +77,10 @@ export function AppointmentSheet({
       setTitle(appointment.title)
       setCategory(appointment.category)
       setSubcategory(appointment.subcategory ?? "")
-      setMemberId(appointment.memberId._id)
-      setDate(new Date(appointment.date).toISOString().split("T")[0])
-      setTime(appointment.time ?? "")
+      setMemberIds(appointment.memberIds?.map(m => m._id) ?? (appointment.memberId ? [appointment.memberId._id] : []))
+      const aptDate = new Date(appointment.startsAt || appointment.date || "")
+      setDate(format(aptDate, "yyyy-MM-dd"))
+      setTime(format(aptDate, "HH:mm"))
       setLocation(appointment.location ?? "")
       setNotes(appointment.notes ?? "")
       setIsRecurring(appointment.isRecurring)
@@ -87,7 +89,7 @@ export function AppointmentSheet({
       setTitle("")
       setCategory("health_wellness")
       setSubcategory("")
-      setMemberId("")
+      setMemberIds([])
       setDate(defaultDate ?? "")
       setTime("")
       setLocation("")
@@ -99,20 +101,25 @@ export function AppointmentSheet({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!title.trim() || !date || !memberId) return
+    if (!title.trim() || !date || memberIds.length === 0) return
 
     setLoading(true)
     try {
+      let startsAt: string;
+      if (time) {
+        startsAt = new Date(`${date}T${time}:00`).toISOString();
+      } else {
+        startsAt = new Date(`${date}T00:00:00`).toISOString();
+      }
+
       const body: Record<string, unknown> = {
-        userId,
         title: title.trim(),
         category,
-        memberId,
-        date: new Date(date).toISOString(),
+        memberIds,
+        startsAt,
         isRecurring,
       }
       if (subcategory.trim()) body.subcategory = subcategory.trim()
-      if (time) body.time = time
       if (location.trim()) body.location = location.trim()
       if (notes.trim()) body.notes = notes.trim()
       if (isRecurring) body.recurrence = { frequency }
@@ -193,27 +200,37 @@ export function AppointmentSheet({
             />
           </div>
 
-          {/* Family Member */}
+          {/* Family Members */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="apt-member">Family Member</Label>
-            <Select value={memberId} onValueChange={setMemberId}>
-              <SelectTrigger id="apt-member">
-                <SelectValue placeholder="Select member…" />
-              </SelectTrigger>
-              <SelectContent>
+            <Label>Family Members</Label>
+            <div className="flex flex-col gap-3 p-3 border rounded-md max-h-40 overflow-y-auto">
                 {members.length === 0 ? (
-                  <div className="px-2 py-4 text-sm text-center text-muted-foreground">
+                  <div className="text-sm text-center text-muted-foreground">
                     No family members yet. Add one first.
                   </div>
                 ) : (
                   members.map((m) => (
-                    <SelectItem key={m._id} value={m._id}>
-                      {m.name} ({m.role})
-                    </SelectItem>
+                    <div key={m._id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`member-${m._id}`}
+                        checked={memberIds.includes(m._id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setMemberIds((prev) => [...prev, m._id]);
+                          } else {
+                            setMemberIds((prev) =>
+                              prev.filter((id) => id !== m._id)
+                            );
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`member-${m._id}`} className="font-normal cursor-pointer">
+                        {m.name} ({m.role})
+                      </Label>
+                    </div>
                   ))
                 )}
-              </SelectContent>
-            </Select>
+            </div>
           </div>
 
           {/* Date + Time */}
@@ -302,7 +319,7 @@ export function AppointmentSheet({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !memberId}>
+            <Button type="submit" disabled={loading || memberIds.length === 0}>
               {loading
                 ? "Saving…"
                 : isEditing

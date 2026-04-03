@@ -62,12 +62,12 @@ interface CalendarEvent {
 
 function toCalendarEvents(appointments: AppointmentResponse[]): CalendarEvent[] {
   return appointments.map((a) => {
-    const start = new Date(a.date)
-    if (a.time) {
+    const start = new Date(a.startsAt || a.date || "")
+    if (a.time && !a.startsAt) {
       const [h, m] = a.time.split(":").map(Number)
       start.setHours(h, m, 0, 0)
     }
-    const end = addHours(start, 1)
+    const end = a.endsAt ? new Date(a.endsAt) : addHours(start, 1)
     return { id: a._id, title: a.title, start, end, resource: a }
   })
 }
@@ -170,13 +170,15 @@ function EventComponent({ event }: { event: CalendarEvent }) {
   const apt = event.resource
   const isCompleted = apt.status === "completed"
   const isCancelled = apt.status === "cancelled"
+  const members = apt.memberIds?.length > 0 ? apt.memberIds : (apt.memberId ? [apt.memberId] : [])
+  const names = members.map(m => m.name).join(", ")
 
   return (
     <span
       className={`block truncate text-xs font-medium ${
         isCompleted || isCancelled ? "line-through opacity-60" : ""
       }`}
-      title={`${apt.title} — ${apt.memberId.name}`}
+      title={`${apt.title} — ${names}`}
     >
       {apt.title}
     </span>

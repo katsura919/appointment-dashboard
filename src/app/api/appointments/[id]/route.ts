@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import Appointment from "@/models/Appointment"
+import { auth } from "@/auth"
 
 const CATEGORIES = [
   "health_wellness",
@@ -13,24 +14,31 @@ const CATEGORIES = [
   "mom_personal_care",
 ] as const
 
+const RecurrenceSchema = z.object({
+  frequency: z.enum(["weekly", "monthly", "yearly"]),
+  interval: z.number().optional(),
+  endDate: z.string().datetime().optional(),
+  occurrences: z.number().optional(),
+  nextDate: z.string().datetime().optional(),
+});
+
 const UpdateAppointmentSchema = z.object({
   title: z.string().min(1).trim().optional(),
   category: z.enum(CATEGORIES).optional(),
   subcategory: z.string().trim().optional(),
   memberId: z.string().optional(),
+  memberIds: z.array(z.string()).min(1).optional(),
   date: z.string().datetime().optional(),
   time: z.string().optional(),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
   location: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   isRecurring: z.boolean().optional(),
-  recurrence: z
-    .object({
-      frequency: z.enum(["weekly", "monthly", "yearly"]),
-      nextDate: z.string().datetime().optional(),
-    })
-    .optional(),
+  recurrence: RecurrenceSchema.optional(),
   status: z.enum(["upcoming", "completed", "cancelled", "rescheduled"]).optional(),
   reminderSent: z.boolean().optional(),
+  deletedAt: z.string().datetime().optional(),
 })
 
 export async function GET(
@@ -38,17 +46,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params
     await connectDB()
 
-    const appointment = await Appointment.findById(id).populate(
-      "memberId",
-      "name role avatar"
-    )
+    const appointment = await Appointment.findOne({ _id: id, userId: session.user.id })
+      .populate("memberIds", "name role avatar color")
+      .populate("memberId", "name role avatar")
 
-    if (!appointment) {
-      return Response.json({ error: "Appointment not found" }, { status: 404 })
-    }
+    if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ appointment }, { status: 200 })
   } catch {
@@ -61,27 +68,30 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params
     const body = await request.json()
-    const parsed = UpdateAppointmentSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return Response.json(
-        { error: "Validation failed", issues: parsed.error.issues },
-        { status: 400 }
-      )
+    
+    if (!body.memberIds && body.memberId) {
+      body.memberIds = [body.memberId];
     }
+    if (!body.startsAt && body.date) {
+      body.startsAt = body.date;
+    }
+
+    const parsed = UpdateAppointmentSchema.safeParse(body)
+    if (!parsed.success) return Response.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 })
 
     await connectDB()
 
-    const appointment = await Appointment.findByIdAndUpdate(id, parsed.data, {
-      new: true,
-      runValidators: true,
-    }).populate("memberId", "name role avatar")
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: id, userId: session.user.id },
+      { ...parsed.data, updatedBy: session.user.id },
+      { new: true, runValidators: true }
+    ).populate("memberIds", "name role avatar color").populate("memberId", "name role avatar")
 
-    if (!appointment) {
-      return Response.json({ error: "Appointment not found" }, { status: 404 })
-    }
+    if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ appointment }, { status: 200 })
   } catch {
@@ -94,13 +104,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const { id } = await params
     await connectDB()
 
-    const appointment = await Appointment.findByIdAndDelete(id)
-    if (!appointment) {
-      return Response.json({ error: "Appointment not found" }, { status: 404 })
-    }
+    const appointment = await Appointment.findOneAndDelete({ _id: id, userId: session.user.id })
+    if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
     return Response.json({ message: "Appointment deleted" }, { status: 200 })
   } catch {

@@ -9,6 +9,7 @@ export interface FamilyMemberResponse {
   userId: string
   name: string
   role: MemberRole
+  color?: string
   dateOfBirth?: string
   avatar?: string
   createdAt: string
@@ -20,19 +21,25 @@ export interface AppointmentResponse {
   title: string
   category: AppointmentCategory
   subcategory?: string
-  memberId: {
+  memberId?: {
     _id: string
     name: string
     role: MemberRole
     avatar?: string
   }
-  date: string
+  memberIds: FamilyMemberResponse[]
+  date?: string
   time?: string
+  startsAt: string
+  endsAt?: string
   location?: string
   notes?: string
   isRecurring: boolean
   recurrence?: {
     frequency: RecurrenceFrequency
+    interval?: number
+    occurrences?: number
+    endDate?: string
     nextDate?: string
   }
   status: AppointmentStatus
