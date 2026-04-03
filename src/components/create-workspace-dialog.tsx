@@ -15,11 +15,6 @@ import {
 } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
 
-interface CreateWorkspaceDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
 interface Workspace {
   _id: string
   name: string
@@ -27,7 +22,16 @@ interface Workspace {
   members: Array<{ userId: string; role: string }>
 }
 
-export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDialogProps) {
+interface CreateWorkspaceDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Called with the newly created workspace. If provided, the page will NOT auto-reload. */
+  onSuccess?: (workspace: Workspace) => void
+}
+
+
+
+export function CreateWorkspaceDialog({ open, onOpenChange, onSuccess }: CreateWorkspaceDialogProps) {
   const [name, setName] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const { setActiveWorkspace } = useWorkspace()
@@ -56,14 +60,18 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
 
       const data = await res.json()
       const newWorkspace = data.workspace as Workspace
-      
+
       // Switch to the newly created workspace
       setActiveWorkspace(newWorkspace)
       toast.success(`Workspace "${newWorkspace.name}" created!`)
       onOpenChange(false)
-      
-      // Reload page so workspace context + sidebar refreshes fully
-      window.location.reload()
+
+      if (onSuccess) {
+        onSuccess(newWorkspace)
+      } else {
+        // Fallback: reload page so workspace context + sidebar refreshes
+        window.location.reload()
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong")
     } finally {

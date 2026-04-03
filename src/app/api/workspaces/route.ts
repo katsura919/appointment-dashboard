@@ -8,17 +8,19 @@ const CreateWorkspaceSchema = z.object({
   name: z.string().min(1).trim(),
 });
 
+import { getServerUserId } from "@/lib/server-auth";
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getServerUserId();
+    if (!userId) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
     const workspaces = await Workspace.find({
-      "members.userId": session.user.id,
+      "members.userId": userId,
     });
 
     return Response.json({ workspaces }, { status: 200 });
@@ -33,8 +35,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getServerUserId();
+    if (!userId) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -52,10 +54,10 @@ export async function POST(request: NextRequest) {
 
     const workspace = await Workspace.create({
       name: parsed.data.name,
-      ownerId: session.user.id,
+      ownerId: userId,
       members: [
         {
-          userId: session.user.id,
+          userId: userId,
           role: "owner",
         },
       ],

@@ -16,17 +16,17 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const authed = isAuthenticated(request)
 
-  if (pathname.startsWith("/dashboard") && !authed) {
+  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/workspaces")) && !authed) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
   if ((pathname === "/login" || pathname === "/register") && authed) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/workspaces", request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/workspaces/:path*", "/login", "/register"],
 }

@@ -97,7 +97,7 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
         setAuth(data.user, data.token);
         document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
         toast.success("Logged in successfully!");
-        router.push("/dashboard");
+        router.push("/workspaces");
       } else {
         toast.success("Account created successfully! Redirecting to login...");
         setTimeout(() => {
@@ -117,9 +117,9 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
       // Store the action type (signup or login) in sessionStorage
       sessionStorage.setItem("auth-action", isLogin ? "login" : "signup");
 
-      // Redirect to dashboard, then validate on the dashboard
+      // Redirect to workspaces, then validate there
       const result = await signIn("google", {
-        callbackUrl: "/dashboard",
+        callbackUrl: "/workspaces",
         redirect: true,
       });
     } catch (error) {

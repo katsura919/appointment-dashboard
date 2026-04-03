@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
-import Image from "next/image";
+import { getServerUserId } from "@/lib/server-auth";
 
-export default function Home() {
-  return (
-    redirect("/login")
-  );
+export default async function Home() {
+  const userId = await getServerUserId();
+
+  if (userId) {
+    redirect("/workspaces");
+  } else {
+    redirect("/login");
+  }
 }

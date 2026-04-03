@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const workspaceId = request.headers.get("x-workspace-id");
     if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
+    const { userId, workspace } = await requireWorkspaceAccess(workspaceId);
 
     const body = await request.json();
     
@@ -139,8 +139,8 @@ export async function POST(request: NextRequest) {
     const appointment = await Appointment.create({
         ...parsed.data,
         workspaceId: workspace._id,
-        createdBy: session.user?.id,
-        updatedBy: session.user?.id,
+        createdBy: userId,
+        updatedBy: userId,
     });
     
     await appointment.populate("memberIds", "name role avatar color");

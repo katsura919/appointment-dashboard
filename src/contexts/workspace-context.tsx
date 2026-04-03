@@ -1,13 +1,15 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { useAuthStore } from "@/store/auth-store"
 
 interface Workspace {
   _id: string;
   name: string;
   ownerId: string;
   members: Array<{ userId: string; role: string }>;
+  createdAt?: string;
 }
 
 interface WorkspaceContextType {
@@ -15,65 +17,66 @@ interface WorkspaceContextType {
   workspaces: Workspace[];
   setActiveWorkspace: (workspace: Workspace) => void;
   isLoading: boolean;
+  refreshWorkspaces: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined)
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
+  const { isAuthenticated } = useAuthStore()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
+  const [activeWorkspace, setActiveWorkspaceState] = useState<Workspace | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchWorkspaces() {
-      if (status !== "authenticated") {
-        setWorkspaces([])
-        setActiveWorkspace(null)
-        if (status !== "loading") setIsLoading(false)
-        return
-      }
+  const fetchWorkspaces = useCallback(async () => {
+    // Check if either NextAuth or Zustand says we are authenticated
+    const isReady = status === "authenticated" || isAuthenticated;
+    const isStillLoading = status === "loading";
 
-      try {
-        const res = await fetch("/api/workspaces")
-        if (res.ok) {
-          const data = await res.json()
-          setWorkspaces(data.workspaces)
-          
-          if (data.workspaces.length > 0) {
-            // Restore from localStorage or default to first
-            const savedId = localStorage.getItem("activeWorkspaceId")
-            const saved = data.workspaces.find((w: Workspace) => w._id === savedId)
-            setActiveWorkspace(saved || data.workspaces[0])
-          } else {
-            // Auto-create workspace if they have none
-            const createRes = await fetch("/api/workspaces", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: "Personal Workspace" })
-            })
-            if (createRes.ok) {
-               const createData = await createRes.json()
-               setWorkspaces([createData.workspace])
-               setActiveWorkspace(createData.workspace)
-            }
-          }
+    if (!isReady) {
+      setWorkspaces([])
+      setActiveWorkspaceState(null)
+      if (!isStillLoading) setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await fetch("/api/workspaces")
+      if (res.ok) {
+        const data = await res.json()
+        const fetched: Workspace[] = data.workspaces ?? []
+        setWorkspaces(fetched)
+
+        if (fetched.length > 0) {
+          // Restore from localStorage or default to first
+          const savedId = localStorage.getItem("activeWorkspaceId")
+          const saved = fetched.find((w) => w._id === savedId)
+          setActiveWorkspaceState((prev) => {
+            // If the currently active workspace is still in the list, keep it
+            if (prev && fetched.find((w) => w._id === prev._id)) return prev
+            return saved || fetched[0]
+          })
+        } else {
+          setActiveWorkspaceState(null)
         }
-      } catch (err) {
-        console.error("Failed to load workspaces", err)
-      } finally {
-        setIsLoading(false)
       }
+    } catch (err) {
+      console.error("Failed to load workspaces", err)
+    } finally {
+      setIsLoading(false)
     }
-
-    fetchWorkspaces()
-  }, [status])
+  }, [status, isAuthenticated])
 
   useEffect(() => {
-    if (activeWorkspace) {
-      localStorage.setItem("activeWorkspaceId", activeWorkspace._id)
-    }
-  }, [activeWorkspace])
+    fetchWorkspaces()
+  }, [fetchWorkspaces])
+
+  function setActiveWorkspace(workspace: Workspace) {
+    setActiveWorkspaceState(workspace)
+    localStorage.setItem("activeWorkspaceId", workspace._id)
+  }
 
   return (
     <WorkspaceContext.Provider
@@ -82,6 +85,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         workspaces,
         setActiveWorkspace,
         isLoading,
+        refreshWorkspaces: fetchWorkspaces,
       }}
     >
       {children}

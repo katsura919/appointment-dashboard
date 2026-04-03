@@ -19,7 +19,7 @@ export async function PATCH(
 ) {
   const { id, userId: targetUserId } = await params;
   try {
-    const { workspace, session, member } = await requireWorkspaceAccess(id);
+    const { workspace, userId, member } = await requireWorkspaceAccess(id);
 
     if (!canChangeRoles(member)) {
       return Response.json(
@@ -29,7 +29,7 @@ export async function PATCH(
     }
 
     // Cannot change own role
-    if (targetUserId === session.user?.id) {
+    if (targetUserId === userId) {
       return Response.json({ error: "You cannot change your own role" }, { status: 400 });
     }
 
@@ -71,9 +71,9 @@ export async function DELETE(
 ) {
   const { id, userId: targetUserId } = await params;
   try {
-    const { workspace, session, member } = await requireWorkspaceAccess(id);
+    const { workspace, userId, member } = await requireWorkspaceAccess(id);
 
-    const isSelf = targetUserId === session.user?.id;
+    const isSelf = targetUserId === userId;
 
     // Self-removal (leaving)
     if (isSelf) {

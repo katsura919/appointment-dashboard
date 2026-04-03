@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const workspaceId = request.headers.get("x-workspace-id") || new URL(request.url).searchParams.get("workspaceId");
     if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
+    const { userId, workspace } = await requireWorkspaceAccess(workspaceId);
 
     const body = await request.json()
     const parsed = CreateWellBeingSchema.safeParse(body)

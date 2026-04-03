@@ -1,15 +1,14 @@
 import Workspace from "@/models/Workspace";
 import { connectDB } from "@/lib/mongodb";
-import { auth } from "@/auth";
+import { getServerUserId } from "@/lib/server-auth";
 import type { IWorkspaceMember } from "@/models/Workspace";
 
 export async function requireWorkspaceAccess(workspaceId: string, allowedRoles?: string[]) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getServerUserId();
+  if (!userId) {
     throw new Error("Unauthorized");
   }
 
-  const userId = session.user.id;
   await connectDB();
   const workspace = await Workspace.findById(workspaceId);
   
@@ -29,7 +28,7 @@ export async function requireWorkspaceAccess(workspaceId: string, allowedRoles?:
     throw new Error("Forbidden: Insufficient workspace role");
   }
 
-  return { workspace, session, member };
+  return { workspace, userId, member };
 }
 
 // Role helpers

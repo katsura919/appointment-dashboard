@@ -78,7 +78,7 @@ export async function PUT(
     const workspaceId = request.headers.get("x-workspace-id");
     if (!workspaceId) return Response.json({ error: "Missing workspace context" }, { status: 400 });
 
-    const { session, workspace } = await requireWorkspaceAccess(workspaceId);
+    const { userId, workspace } = await requireWorkspaceAccess(workspaceId);
 
     const body = await request.json()
     
@@ -94,7 +94,7 @@ export async function PUT(
 
     const appointment = await Appointment.findOneAndUpdate(
       { _id: id, workspaceId: workspace._id },
-      { ...parsed.data, updatedBy: session.user?.id },
+      { ...parsed.data, updatedBy: userId },
       { new: true, runValidators: true }
     ).populate("memberIds", "name role avatar color").populate("memberId", "name role avatar")
 
