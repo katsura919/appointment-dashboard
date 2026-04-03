@@ -11,6 +11,8 @@ export interface FamilyMemberResponse {
   role: MemberRole
   color?: string
   dateOfBirth?: string
+  contactNumber?: string
+  email?: string
   avatar?: string
   createdAt: string
 }

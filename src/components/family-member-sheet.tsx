@@ -48,6 +48,8 @@ export function FamilyMemberSheet({
   const [name, setName] = React.useState("")
   const [role, setRole] = React.useState<MemberRole>("child")
   const [dateOfBirth, setDateOfBirth] = React.useState("")
+  const [contactNumber, setContactNumber] = React.useState("")
+  const [email, setEmail] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
   // Populate form when editing
@@ -60,10 +62,14 @@ export function FamilyMemberSheet({
           ? new Date(member.dateOfBirth).toISOString().split("T")[0]
           : ""
       )
+      setContactNumber(member.contactNumber ?? "")
+      setEmail(member.email ?? "")
     } else if (open && !member) {
       setName("")
       setRole("child")
       setDateOfBirth("")
+      setContactNumber("")
+      setEmail("")
     }
   }, [open, member])
 
@@ -73,7 +79,13 @@ export function FamilyMemberSheet({
 
     setLoading(true)
     try {
-      const body: Record<string, unknown> = { userId, name: name.trim(), role }
+      const body: Record<string, unknown> = {
+        userId,
+        name: name.trim(),
+        role,
+        contactNumber: contactNumber.trim(),
+        email: email.trim().toLowerCase(),
+      }
       if (dateOfBirth) body.dateOfBirth = new Date(dateOfBirth).toISOString()
 
       const url = isEditing
@@ -141,6 +153,28 @@ export function FamilyMemberSheet({
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fm-phone">Contact Number (optional)</Label>
+            <Input
+              id="fm-phone"
+              type="tel"
+              value={contactNumber}
+              onChange={(e) => setContactNumber(e.target.value)}
+              placeholder="e.g. +1 234 567 890"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fm-email">Email Address (optional)</Label>
+            <Input
+              id="fm-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. sarah@example.com"
             />
           </div>
 

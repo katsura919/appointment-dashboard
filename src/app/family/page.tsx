@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { UserIcon, PlusIcon, PencilIcon, Trash2Icon, CalendarIcon } from "lucide-react"
+import { UserIcon, PlusIcon, PencilIcon, Trash2Icon, CalendarIcon, PhoneIcon, MailIcon } from "lucide-react"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { FamilyMemberSheet } from "@/components/family-member-sheet"
 import { Button } from "@/components/ui/button"
@@ -81,17 +81,33 @@ function MemberCard({
           </Button>
         </div>
       </CardHeader>
-      {member.dateOfBirth && (
-        <CardContent className="pt-0 text-sm text-muted-foreground flex items-center gap-1.5">
-          <CalendarIcon className="size-3.5" />
-          Born{" "}
-          {new Date(member.dateOfBirth).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </CardContent>
-      )}
+      <CardContent className="pt-0 space-y-2">
+        {member.dateOfBirth && (
+          <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <CalendarIcon className="size-3.5" />
+            <span>
+              Born{" "}
+              {new Date(member.dateOfBirth).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+        )}
+        {member.contactNumber && (
+          <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <PhoneIcon className="size-3.5" />
+            <span>{member.contactNumber}</span>
+          </div>
+        )}
+        {member.email && (
+          <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <MailIcon className="size-3.5" />
+            <span className="truncate">{member.email}</span>
+          </div>
+        )}
+      </CardContent>
     </Card>
   )
 }
