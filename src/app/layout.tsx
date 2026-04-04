@@ -53,7 +53,7 @@ export default function RootLayout({
                 <GoogleValidator>{children}</GoogleValidator>
               </WorkspaceProvider>
             </AuthSessionProvider>
-            <Toaster richColors position="top-right" />
+            <Toaster position="top-right" />
           </TooltipProvider>
         </ThemeProvider>
       </body>

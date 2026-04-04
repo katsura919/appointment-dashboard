@@ -224,7 +224,7 @@ export function KanbanLane({
           <Button
             variant="ghost"
             size="sm"
-            className="w-full h-8 text-xs text-muted-foreground hover:text-foreground justify-start gap-1.5"
+            className="w-full h-8 text-xs text-muted-foreground hover:text-foreground justify-start gap-1.5 cursor-pointer"
             onClick={() => setAddingCard(true)}
           >
             <PlusIcon className="size-3.5" />

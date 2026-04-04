@@ -8,16 +8,15 @@ import {
   CheckSquareIcon,
   TagIcon,
   CalendarIcon,
-  UserIcon,
   TrashIcon,
   PlusIcon,
+  AlignLeftIcon,
+  Loader2Icon,
 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,6 +65,7 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
   const [newLabelText, setNewLabelText] = useState("")
   const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0].color)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (card) {
@@ -110,6 +110,7 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
 
   async function handleDelete() {
     if (!card) return
+    setDeleting(true)
     try {
       const res = await fetch(`/api/trello/cards/${card.id}`, {
         method: "DELETE",
@@ -121,6 +122,8 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
       onOpenChange(false)
     } catch {
       toast.error("Failed to delete card")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -151,162 +154,242 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
   }
 
   const completedCount = checklist.filter((i) => i.checked).length
+  const checklistProgress = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+        {/* Title area */}
+        <div className="px-6 pt-6 pb-4 border-b">
+          <DialogTitle asChild>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="text-base font-semibold border-0 p-0 h-auto focus-visible:ring-0 shadow-none"
+              className="text-base font-semibold border-0 px-0 h-auto focus-visible:ring-0 shadow-none bg-transparent"
               placeholder="Card title"
             />
           </DialogTitle>
-        </DialogHeader>
+        </div>
 
-        <div className="space-y-5">
-          {/* Description */}
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
-              Description
-            </Label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description..."
-              rows={3}
-            />
-          </div>
-
-          {/* Due Date */}
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
-              <CalendarIcon className="size-3.5" />
-              Due Date
-            </Label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
-
-          {/* Labels */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
-              <TagIcon className="size-3.5" />
-              Labels
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {labels.map((label, idx) => (
-                <Badge
-                  key={idx}
-                  style={{ backgroundColor: label.color, color: "#fff" }}
-                  className="cursor-pointer gap-1 border-0"
-                  onClick={() => removeLabel(idx)}
-                >
-                  {label.text}
-                  <span className="text-white/70">×</span>
-                </Badge>
-              ))}
+        {/* Two-column body */}
+        <div className="flex flex-1 overflow-y-auto min-h-0">
+          {/* Main content */}
+          <div className="flex-1 px-6 py-5 space-y-6 overflow-y-auto">
+            {/* Description */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <AlignLeftIcon className="size-3.5" />
+                Description
+              </div>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add a more detailed description..."
+                rows={4}
+                className="resize-none text-sm"
+              />
             </div>
-            <div className="flex gap-2">
+
+            {/* Checklist */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <CheckSquareIcon className="size-3.5" />
+                  Checklist
+                  {checklist.length > 0 && (
+                    <span className="normal-case tracking-normal font-normal text-muted-foreground">
+                      {completedCount}/{checklist.length}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {checklist.length > 0 && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-7 text-right shrink-0">
+                      {checklistProgress}%
+                    </span>
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-300"
+                        style={{ width: `${checklistProgress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    {checklist.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2.5 py-1 px-2 rounded-md group hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          checked={item.checked}
+                          onCheckedChange={() => toggleChecklistItem(idx)}
+                        />
+                        <span
+                          className={`flex-1 text-sm ${item.checked ? "line-through text-muted-foreground" : ""}`}
+                        >
+                          {item.text}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 opacity-0 group-hover:opacity-100 shrink-0"
+                          onClick={() => removeChecklistItem(idx)}
+                        >
+                          <TrashIcon className="size-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-2">
+                <Input
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  placeholder="Add an item..."
+                  className="flex-1 h-8 text-sm"
+                  onKeyDown={(e) => e.key === "Enter" && addChecklistItem()}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addChecklistItem}
+                >
+                  <PlusIcon className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-52 shrink-0 border-l bg-muted/20 px-4 py-5 space-y-5">
+            {/* Due Date */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <CalendarIcon className="size-3.5" />
+                Due Date
+              </Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+
+            {/* Labels */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <TagIcon className="size-3.5" />
+                Labels
+              </Label>
+
+              {labels.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {labels.map((label, idx) => (
+                    <Badge
+                      key={idx}
+                      style={{ backgroundColor: label.color, color: "#fff" }}
+                      className="cursor-pointer gap-1 border-0 text-xs"
+                      onClick={() => removeLabel(idx)}
+                    >
+                      {label.text}
+                      <span className="text-white/70 leading-none">×</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
               <Input
                 value={newLabelText}
                 onChange={(e) => setNewLabelText(e.target.value)}
-                placeholder="Label text"
-                className="flex-1 h-8 text-sm"
+                placeholder="Label name"
+                className="h-8 text-sm"
                 onKeyDown={(e) => e.key === "Enter" && addLabel()}
               />
-              <div className="flex gap-1">
+
+              <div className="flex items-center gap-1 flex-wrap">
                 {LABEL_COLORS.map(({ color }) => (
                   <button
                     key={color}
                     type="button"
                     onClick={() => setNewLabelColor(color)}
-                    className="size-6 rounded-full border-2 transition-transform hover:scale-110"
+                    className="size-5 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer"
                     style={{
                       backgroundColor: color,
-                      borderColor: newLabelColor === color ? "white" : "transparent",
-                      outline: newLabelColor === color ? `2px solid ${color}` : "none",
+                      borderColor:
+                        newLabelColor === color ? "white" : "transparent",
+                      outline:
+                        newLabelColor === color ? `2px solid ${color}` : "none",
                     }}
                   />
                 ))}
               </div>
-              <Button type="button" size="sm" variant="outline" onClick={addLabel}>
-                <PlusIcon className="size-3.5" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Checklist */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wide">
-              <CheckSquareIcon className="size-3.5" />
-              Checklist {checklist.length > 0 && `(${completedCount}/${checklist.length})`}
-            </Label>
-
-            {checklist.length > 0 && (
-              <div className="space-y-1">
-                {checklist.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 group">
-                    <Checkbox
-                      checked={item.checked}
-                      onCheckedChange={() => toggleChecklistItem(idx)}
-                    />
-                    <span className={`flex-1 text-sm ${item.checked ? "line-through text-muted-foreground" : ""}`}>
-                      {item.text}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 opacity-0 group-hover:opacity-100"
-                      onClick={() => removeChecklistItem(idx)}
-                    >
-                      <TrashIcon className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Input
-                value={newChecklistItem}
-                onChange={(e) => setNewChecklistItem(e.target.value)}
-                placeholder="Add item..."
-                className="flex-1 h-8 text-sm"
-                onKeyDown={(e) => e.key === "Enter" && addChecklistItem()}
-              />
-              <Button type="button" size="sm" variant="outline" onClick={addChecklistItem}>
-                <PlusIcon className="size-3.5" />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-full h-7 text-xs"
+                onClick={addLabel}
+              >
+                <PlusIcon className="size-3" />
+                Add label
               </Button>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 flex-row items-center justify-between">
+        {/* Footer */}
+        <div className="px-6 py-3 border-t flex items-center justify-between bg-background">
           <Button
             variant="ghost"
             size="sm"
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
             onClick={handleDelete}
+            disabled={deleting || saving}
           >
-            <TrashIcon className="size-4 mr-1" />
-            Delete
+            {deleting ? (
+              <Loader2Icon className="size-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <TrashIcon className="size-3.5 mr-1.5" />
+            )}
+            {deleting ? "Deleting..." : "Delete"}
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button
+              className="cursor-pointer"
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={saving || deleting}
+            >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving || !title.trim()}>
-              Save
+            <Button
+              className="cursor-pointer"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving || deleting || !title.trim()}
+            >
+              {saving ? (
+                <>
+                  <Loader2Icon className="size-3.5 mr-1.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save"
+              )}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
