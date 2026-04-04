@@ -80,7 +80,6 @@ export function WorkspaceSwitcher() {
                     {ws.name.charAt(0).toUpperCase()}
                   </div>
                   {ws.name}
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
@@ -92,15 +91,6 @@ export function WorkspaceSwitcher() {
                   <Plus className="size-4" />
                 </div>
                 <div className="font-medium text-muted-foreground">Add workspace</div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="gap-2 p-2 cursor-pointer">
-                <Link href="/settings">
-                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                    <Settings2 className="size-4" />
-                  </div>
-                  <div className="font-medium text-muted-foreground">Workspace settings</div>
-                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
