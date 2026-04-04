@@ -41,7 +41,7 @@ function StatCard({
   description: string;
 }) {
   return (
-    <Card className="@container/card bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card">
+    <Card className="bg-card shadow-sm">
       <CardHeader>
         <CardDescription>{label}</CardDescription>
         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
