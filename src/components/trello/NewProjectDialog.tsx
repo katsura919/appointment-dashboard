@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, useState } from "react"
+
 import { toast } from "sonner"
 import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -36,10 +37,10 @@ interface Props {
 }
 
 export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }: Props) {
-  const [name, setName] = React.useState("")
-  const [description, setDescription] = React.useState("")
-  const [color, setColor] = React.useState(PRESET_COLORS[0])
-  const [loading, setLoading] = React.useState(false)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [color, setColor] = useState(PRESET_COLORS[0])
+  const [loading, setLoading] = useState(false)
 
   function reset() {
     setName("")
@@ -47,7 +48,7 @@ export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }:
     setColor(PRESET_COLORS[0])
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
 

@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, useEffect, useState } from "react"
+
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -52,32 +53,32 @@ export function AppointmentSheet({
 }: AppointmentSheetProps) {
   const isEditing = !!appointment
 
-  const [title, setTitle] = React.useState("")
-  const [category, setCategory] = React.useState<AppointmentCategory>(
+  const [title, setTitle] = useState("")
+  const [category, setCategory] = useState<AppointmentCategory>(
     "health_wellness"
   )
-  const [subcategory, setSubcategory] = React.useState("")
-  const [status, setStatus] = React.useState<AppointmentStatus>("upcoming")
-  const [memberIds, setMemberIds] = React.useState<string[]>([])
-  const [date, setDate] = React.useState("")
-  const [time, setTime] = React.useState("")
-  const [endDate, setEndDate] = React.useState("")
-  const [endTime, setEndTime] = React.useState("")
-  const [location, setLocation] = React.useState("")
-  const [notes, setNotes] = React.useState("")
-  const [isRecurring, setIsRecurring] = React.useState(false)
-  const [frequency, setFrequency] = React.useState<
+  const [subcategory, setSubcategory] = useState("")
+  const [status, setStatus] = useState<AppointmentStatus>("upcoming")
+  const [memberIds, setMemberIds] = useState<string[]>([])
+  const [date, setDate] = useState("")
+  const [time, setTime] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [location, setLocation] = useState("")
+  const [notes, setNotes] = useState("")
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [frequency, setFrequency] = useState<
     "weekly" | "monthly" | "yearly"
   >("monthly")
-  const [interval, setInterval] = React.useState(1)
-  const [recurrenceEndDate, setRecurrenceEndDate] = React.useState("")
-  const [reminderRules, setReminderRules] = React.useState<number[]>([])
+  const [interval, setInterval] = useState(1)
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("")
+  const [reminderRules, setReminderRules] = useState<number[]>([])
 
-  const [members, setMembers] = React.useState<FamilyMemberResponse[]>([])
-  const [loading, setLoading] = React.useState(false)
+  const [members, setMembers] = useState<FamilyMemberResponse[]>([])
+  const [loading, setLoading] = useState(false)
 
   // Fetch family members when sheet opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open || !workspaceId) return
     fetch(`/api/family-members`, {
       headers: { "x-workspace-id": workspaceId }
@@ -88,7 +89,7 @@ export function AppointmentSheet({
   }, [open, workspaceId])
 
   // Populate form when editing
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && appointment) {
       setTitle(appointment.title)
       setCategory(appointment.category)
@@ -136,7 +137,7 @@ export function AppointmentSheet({
     }
   }, [open, appointment, defaultDate])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim() || !date || memberIds.length === 0) return
 

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react"
+import { CSSProperties, ReactNode, useEffect } from "react"
+
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -13,13 +14,13 @@ export function DashboardShell({
   children,
 }: {
   title: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const router = useRouter()
   const { activeWorkspace, isLoading } = useWorkspace()
 
   // Redirect to workspaces overview if loaded and no workspace is available
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isLoading && !activeWorkspace) {
       router.push("/workspaces")
     }
@@ -33,7 +34,7 @@ export function DashboardShell({
           {
             "--sidebar-width": "calc(var(--spacing) * 72)",
             "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
+          } as CSSProperties
         }
       >
         <AppSidebar variant="inset" />
@@ -54,7 +55,7 @@ export function DashboardShell({
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
           "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
+        } as CSSProperties
       }
     >
       <AppSidebar variant="inset" />

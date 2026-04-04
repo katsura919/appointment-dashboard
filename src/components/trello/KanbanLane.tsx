@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { CSSProperties, useEffect, useRef, useState } from "react"
+
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useDroppable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
@@ -34,11 +35,11 @@ export function KanbanLane({
   onLaneDeleted,
   onLaneRenamed,
 }: Props) {
-  const [addingCard, setAddingCard] = React.useState(false)
-  const [newCardTitle, setNewCardTitle] = React.useState("")
-  const [renaming, setRenaming] = React.useState(false)
-  const [renameValue, setRenameValue] = React.useState(lane.title)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [addingCard, setAddingCard] = useState(false)
+  const [newCardTitle, setNewCardTitle] = useState("")
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState(lane.title)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Lane itself is sortable (for column reordering)
   const {
@@ -53,13 +54,13 @@ export function KanbanLane({
   // Lane body is droppable so cards can be dropped into empty lanes
   const { setNodeRef: setDropRef } = useDroppable({ id: `droppable-${lane.id}` })
 
-  const laneStyle: React.CSSProperties = {
+  const laneStyle: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: laneIsDragging ? 0.4 : 1,
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (addingCard) inputRef.current?.focus()
   }, [addingCard])
 

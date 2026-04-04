@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { ComponentProps } from "react"
+
 import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
@@ -98,7 +99,7 @@ const categories = [
 
 const FALLBACK_USER = { name: "User", email: "", avatar: "" }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const storeUser = useAuthStore((s) => s.user)
   const { data: session } = useSession()
 

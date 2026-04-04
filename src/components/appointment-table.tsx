@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useEffect, useId, useMemo, useState } from "react"
+
 import { format } from "date-fns"
 import {
   closestCenter,
@@ -284,16 +285,16 @@ export function AppointmentTable({
   onDelete,
   onNew,
 }: AppointmentTableProps) {
-  const [data, setData] = React.useState<AppointmentResponse[]>(appointments)
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
-  const sortableId = React.useId()
+  const [data, setData] = useState<AppointmentResponse[]>(appointments)
+  const [rowSelection, setRowSelection] = useState({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const sortableId = useId()
 
   // Sync when parent data changes
-  React.useEffect(() => {
+  useEffect(() => {
     setData(appointments)
   }, [appointments])
 
@@ -303,12 +304,12 @@ export function AppointmentTable({
     useSensor(KeyboardSensor, {})
   )
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
+  const dataIds = useMemo<UniqueIdentifier[]>(
     () => data.map((a) => a._id),
     [data]
   )
 
-  const columns = React.useMemo<ColumnDef<AppointmentResponse>[]>(
+  const columns = useMemo<ColumnDef<AppointmentResponse>[]>(
     () => [
       {
         id: "drag",

@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, useState } from "react"
+
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,21 +15,21 @@ interface WellBeingFormProps {
 }
 
 export function WellBeingForm({ workspaceId, onSuccess }: WellBeingFormProps) {
-  const [saving, setSaving] = React.useState(false)
+  const [saving, setSaving] = useState(false)
 
   // Default scales of 3 out of 5
-  const [moodScore, setMoodScore] = React.useState(3)
-  const [stressLevel, setStressLevel] = React.useState(3)
-  const [energyLevel, setEnergyLevel] = React.useState(3)
-  const [sleepQuality, setSleepQuality] = React.useState(3)
-  const [activityLevel, setActivityLevel] = React.useState(3)
-  const [hydrationScore, setHydrationScore] = React.useState(3)
+  const [moodScore, setMoodScore] = useState(3)
+  const [stressLevel, setStressLevel] = useState(3)
+  const [energyLevel, setEnergyLevel] = useState(3)
+  const [sleepQuality, setSleepQuality] = useState(3)
+  const [activityLevel, setActivityLevel] = useState(3)
+  const [hydrationScore, setHydrationScore] = useState(3)
   
-  const [sleepHours, setSleepHours] = React.useState("7")
-  const [tagsInput, setTagsInput] = React.useState("")
-  const [notes, setNotes] = React.useState("")
+  const [sleepHours, setSleepHours] = useState("7")
+  const [tagsInput, setTagsInput] = useState("")
+  const [notes, setNotes] = useState("")
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
 

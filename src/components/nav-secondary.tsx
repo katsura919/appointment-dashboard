@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { ComponentPropsWithoutRef, ReactNode } from "react"
+
 import { useTheme } from "next-themes"
 import { MoonIcon, SunIcon } from "lucide-react"
 
@@ -19,9 +20,9 @@ export function NavSecondary({
   items: {
     title: string
     url: string
-    icon: React.ReactNode
+    icon: ReactNode
   }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+} & ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const { resolvedTheme, setTheme } = useTheme()
 
   return (

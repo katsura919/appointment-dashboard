@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useState } from "react"
+
 import { UserIcon, PlusIcon, PencilIcon, Trash2Icon, CalendarIcon, PhoneIcon, MailIcon } from "lucide-react"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { FamilyMemberSheet } from "@/components/family-member-sheet"
@@ -114,13 +115,13 @@ function MemberCard({
 
 export default function FamilyPage() {
   const workspaceId = useWorkspaceId()
-  const [members, setMembers] = React.useState<FamilyMemberResponse[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [members, setMembers] = useState<FamilyMemberResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [editingMember, setEditingMember] =
-    React.useState<FamilyMemberResponse | null>(null)
+    useState<FamilyMemberResponse | null>(null)
 
-  const fetchMembers = React.useCallback(async () => {
+  const fetchMembers = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
     try {
@@ -136,7 +137,7 @@ export default function FamilyPage() {
     }
   }, [workspaceId])
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchMembers()
   }, [fetchMembers])
 

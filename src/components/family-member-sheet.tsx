@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, useEffect, useState } from "react"
+
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,15 +46,15 @@ export function FamilyMemberSheet({
 }: FamilyMemberSheetProps) {
   const isEditing = !!member
 
-  const [name, setName] = React.useState("")
-  const [role, setRole] = React.useState<MemberRole>("child")
-  const [dateOfBirth, setDateOfBirth] = React.useState("")
-  const [contactNumber, setContactNumber] = React.useState("")
-  const [email, setEmail] = React.useState("")
-  const [loading, setLoading] = React.useState(false)
+  const [name, setName] = useState("")
+  const [role, setRole] = useState<MemberRole>("child")
+  const [dateOfBirth, setDateOfBirth] = useState("")
+  const [contactNumber, setContactNumber] = useState("")
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
 
   // Populate form when editing
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && member) {
       setName(member.name)
       setRole(member.role)
@@ -73,7 +74,7 @@ export function FamilyMemberSheet({
     }
   }, [open, member])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim() || !role) return
 

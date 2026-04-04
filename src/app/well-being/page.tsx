@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+
 import { format } from "date-fns"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { WellBeingForm } from "@/components/well-being-form"
@@ -20,11 +21,11 @@ import type { WellBeingLogResponse } from "@/lib/types"
 
 export default function WellBeingPage() {
   const workspaceId = useWorkspaceId()
-  const [logs, setLogs] = React.useState<WellBeingLogResponse[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [showCheckIn, setShowCheckIn] = React.useState(false)
+  const [logs, setLogs] = useState<WellBeingLogResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCheckIn, setShowCheckIn] = useState(false)
 
-  const fetchLogs = React.useCallback(async () => {
+  const fetchLogs = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
     try {
@@ -42,18 +43,18 @@ export default function WellBeingPage() {
     }
   }, [workspaceId])
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchLogs()
   }, [fetchLogs])
 
-  const hasLoggedToday = React.useMemo(() => {
+  const hasLoggedToday = useMemo(() => {
     if (!logs.length) return false
     const today = new Date().toDateString()
     return logs.some(log => new Date(log.date).toDateString() === today)
   }, [logs])
 
   // Automatically show the check-in form if they haven't logged today and logs have loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (!loading && !hasLoggedToday && logs.length >= 0) {
       setShowCheckIn(true)
     }

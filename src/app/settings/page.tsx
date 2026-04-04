@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react"
+
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useWorkspace } from "@/contexts/workspace-context"
@@ -77,7 +78,7 @@ const ROLE_COLORS: Record<MemberRole, string> = {
   member: "bg-slate-100 text-slate-700 border-slate-200",
 }
 
-const ROLE_ICONS: Record<MemberRole, React.ReactNode> = {
+const ROLE_ICONS: Record<MemberRole, ReactNode> = {
   owner: <ShieldCheck className="size-3" />,
   admin: <Shield className="size-3" />,
   member: <UserIcon className="size-3" />,
@@ -104,15 +105,15 @@ function InviteMemberDialog({
   workspaceId: string
   onSuccess: () => void
 }) {
-  const [email, setEmail] = React.useState("")
-  const [role, setRole] = React.useState<"admin" | "member">("member")
-  const [loading, setLoading] = React.useState(false)
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState<"admin" | "member">("member")
+  const [loading, setLoading] = useState(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) { setEmail(""); setRole("member") }
   }, [open])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
@@ -189,26 +190,26 @@ export default function SettingsPage() {
   const router = useRouter()
 
   // Workspace tab state
-  const [wsName, setWsName] = React.useState("")
-  const [savingName, setSavingName] = React.useState(false)
+  const [wsName, setWsName] = useState("")
+  const [savingName, setSavingName] = useState(false)
 
   // Members tab state
-  const [members, setMembers] = React.useState<WorkspaceMember[]>([])
-  const [membersLoading, setMembersLoading] = React.useState(true)
-  const [inviteOpen, setInviteOpen] = React.useState(false)
+  const [members, setMembers] = useState<WorkspaceMember[]>([])
+  const [membersLoading, setMembersLoading] = useState(true)
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   // Confirmation dialogs
-  const [deleteWorkspaceOpen, setDeleteWorkspaceOpen] = React.useState(false)
-  const [removeMemberTarget, setRemoveMemberTarget] = React.useState<WorkspaceMember | null>(null)
-  const [leaveOpen, setLeaveOpen] = React.useState(false)
+  const [deleteWorkspaceOpen, setDeleteWorkspaceOpen] = useState(false)
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<WorkspaceMember | null>(null)
+  const [leaveOpen, setLeaveOpen] = useState(false)
 
   // Sync name field when active workspace changes
-  React.useEffect(() => {
+  useEffect(() => {
     setWsName(activeWorkspace?.name ?? "")
   }, [activeWorkspace])
 
   // Fetch members whenever the workspace changes
-  const fetchMembers = React.useCallback(async () => {
+  const fetchMembers = useCallback(async () => {
     if (!workspaceId) return
     setMembersLoading(true)
     try {
@@ -222,7 +223,7 @@ export default function SettingsPage() {
     }
   }, [workspaceId])
 
-  React.useEffect(() => { fetchMembers() }, [fetchMembers])
+  useEffect(() => { fetchMembers() }, [fetchMembers])
 
   // My role in this workspace
   const myMember = members.find((m) => m.userId === currentUserId)
@@ -231,7 +232,7 @@ export default function SettingsPage() {
   const canManage = myRole === "owner" || myRole === "admin"
 
   // ── Rename workspace ────────────────────────────────────────────────────────
-  async function handleRename(e: React.FormEvent) {
+  async function handleRename(e: FormEvent) {
     e.preventDefault()
     if (!workspaceId || !wsName.trim() || wsName.trim() === activeWorkspace?.name) return
     setSavingName(true)

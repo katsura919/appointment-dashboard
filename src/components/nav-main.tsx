@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { ReactNode } from "react"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { CirclePlusIcon } from "lucide-react"
@@ -18,7 +19,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: React.ReactNode
+    icon?: ReactNode
   }[]
 }) {
   const pathname = usePathname()

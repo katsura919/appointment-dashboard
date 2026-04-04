@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState } from "react"
+
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useAuthStore } from "@/store/auth-store";
@@ -8,6 +9,16 @@ import { useWorkspace } from "@/contexts/workspace-context";
 import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   PlusIcon,
   LayoutDashboardIcon,
@@ -16,7 +27,12 @@ import {
   BuildingIcon,
   SparklesIcon,
   LogOutIcon,
+  CircleUserRoundIcon,
+  SettingsIcon,
+  SunIcon,
+  MoonIcon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { formatDistanceToNow } from "date-fns";
 
 interface Workspace {
@@ -27,6 +43,7 @@ interface Workspace {
   createdAt?: string;
 }
 
+// ── Workspace Card ────────────────────────────────────────────────────────────
 function WorkspaceCard({
   workspace,
   onSelect,
@@ -45,45 +62,34 @@ function WorkspaceCard({
     "from-pink-500 to-fuchsia-600",
     "from-amber-500 to-yellow-600",
   ];
-  // Pick a color based on name
-  const colorIndex =
-    workspace.name.charCodeAt(0) % colors.length;
-  const gradient = colors[colorIndex];
+  const gradient = colors[workspace.name.charCodeAt(0) % colors.length];
 
   return (
     <button
       onClick={() => onSelect(workspace)}
       className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
-      {/* Gradient avatar */}
-      <div
-        className={`flex size-14 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-sm`}
-      >
-        <span className="text-2xl font-bold text-white">{initial}</span>
+      <div className={`flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-sm`}>
+        <span className="text-xl font-bold text-white">{initial}</span>
       </div>
 
-      {/* Info */}
       <div className="flex-1">
         <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
           {workspace.name}
         </h3>
-        <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <UsersIcon className="size-3.5" />
             {memberCount} {memberCount === 1 ? "member" : "members"}
           </span>
           {workspace.createdAt && (
-            <span className="text-xs">
-              Created{" "}
-              {formatDistanceToNow(new Date(workspace.createdAt), {
-                addSuffix: true,
-              })}
+            <span>
+              {formatDistanceToNow(new Date(workspace.createdAt), { addSuffix: true })}
             </span>
           )}
         </div>
       </div>
 
-      {/* Arrow */}
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
           <LayoutDashboardIcon className="size-3" />
@@ -95,6 +101,7 @@ function WorkspaceCard({
   );
 }
 
+// ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-24 text-center">
@@ -102,12 +109,9 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
         <BuildingIcon className="size-10 text-primary" />
       </div>
       <div className="max-w-sm">
-        <h2 className="text-2xl font-bold text-foreground">
-          No workspaces yet
-        </h2>
+        <h2 className="text-2xl font-bold text-foreground">No workspaces yet</h2>
         <p className="mt-2 text-base text-muted-foreground">
-          Create your first workspace to start organizing appointments for your
-          family or team.
+          Create your first workspace to start organizing appointments for your family or team.
         </p>
       </div>
       <Button size="lg" onClick={onCreateClick} className="gap-2">
@@ -118,24 +122,134 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
+// ── Page Header ───────────────────────────────────────────────────────────────
+function PageHeader({ onCreateClick }: { onCreateClick: () => void }) {
+  const { clearAuth } = useAuthStore();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const name = session?.user?.name ?? "User";
+  const email = session?.user?.email ?? "";
+  const avatar = session?.user?.image ?? "";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const handleLogout = async () => {
+    clearAuth();
+    document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
+  return (
+    <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
+            <SparklesIcon className="size-4 text-primary-foreground" />
+          </div>
+          <span className="text-base font-semibold tracking-tight">Minesha</span>
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onCreateClick}
+            className="gap-1.5 hidden sm:inline-flex"
+          >
+            <PlusIcon className="size-3.5" />
+            New Workspace
+          </Button>
+
+          {/* Avatar dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                <Avatar className="size-8 cursor-pointer">
+                  <AvatarImage src={avatar} alt={name} />
+                  <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 rounded-xl" align="end" sideOffset={8}>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2.5 px-3 py-2.5">
+                  <Avatar className="size-8">
+                    <AvatarImage src={avatar} alt={name} />
+                    <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate text-sm font-medium">{name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{email}</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem className="gap-2 cursor-pointer">
+                  <CircleUserRoundIcon className="size-4" />
+                  Account
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => router.push("/settings")}>
+                  <SettingsIcon className="size-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                >
+                  {resolvedTheme === "dark" ? (
+                    <SunIcon className="size-4" />
+                  ) : (
+                    <MoonIcon className="size-4" />
+                  )}
+                  {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                onClick={handleLogout}
+              >
+                <LogOutIcon className="size-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function WorkspacesPage() {
   const router = useRouter();
   const { status } = useSession();
+  const { data: session } = useSession();
   const { isAuthenticated } = useAuthStore();
-  const { workspaces, setActiveWorkspace, isLoading, refreshWorkspaces } =
-    useWorkspace();
-  const [createOpen, setCreateOpen] = React.useState(false);
+  const { workspaces, setActiveWorkspace, isLoading, refreshWorkspaces } = useWorkspace();
+  const [createOpen, setCreateOpen] = useState(false);
 
-  // Protect route
-  React.useEffect(() => {
+  const firstName = session?.user?.name?.split(" ")[0] ?? "there";
+
+  useEffect(() => {
     const isUnauthenticated = status === "unauthenticated" && !isAuthenticated;
     if (isUnauthenticated) {
-      // Break infinite loops: if client says we're unauthenticated but middleware proxy 
-      // still sees a stale cookie, clear it so proxy allows access to /login.
       document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      signOut({ redirect: false }).then(() => {
-        router.push("/login");
-      });
+      signOut({ redirect: false }).then(() => router.push("/login"));
     }
   }, [status, isAuthenticated, router]);
 
@@ -144,12 +258,13 @@ export default function WorkspacesPage() {
     router.push("/dashboard");
   }
 
-  // If loading, show skeleton grid
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <PageHeader onCreateClick={() => {}} />
         <main className="mx-auto max-w-6xl px-6 py-10">
+          <Skeleton className="h-7 w-48 mb-1" />
+          <Skeleton className="h-4 w-64 mb-8" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-48 w-full rounded-2xl" />
@@ -169,20 +284,14 @@ export default function WorkspacesPage() {
           <EmptyState onCreateClick={() => setCreateOpen(true)} />
         ) : (
           <>
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">
-                  Your Workspaces
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {workspaces.length} workspace
-                  {workspaces.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <Button onClick={() => setCreateOpen(true)} className="gap-2" size="sm">
-                <PlusIcon className="size-4" />
-                New Workspace
-              </Button>
+            {/* Section header */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-foreground">
+                Welcome back, {firstName}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""} — pick one to continue
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -193,13 +302,13 @@ export default function WorkspacesPage() {
                   onSelect={handleSelectWorkspace}
                 />
               ))}
-              {/* Create new card */}
+              {/* Create new tile */}
               <button
                 onClick={() => setCreateOpen(true)}
                 className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-transparent py-12 text-muted-foreground transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div className="flex size-12 items-center justify-center rounded-xl border border-dashed border-current">
-                  <PlusIcon className="size-6" />
+                  <PlusIcon className="size-5" />
                 </div>
                 <span className="text-sm font-medium">New Workspace</span>
               </button>
@@ -217,40 +326,5 @@ export default function WorkspacesPage() {
         }}
       />
     </div>
-  );
-}
-
-function PageHeader({ onCreateClick }: { onCreateClick: () => void }) {
-  const { clearAuth } = useAuthStore();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    clearAuth();
-    // Clear custom auth cookie if it exists
-    document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    await signOut({ redirect: false });
-    router.push("/login");
-  };
-
-  return (
-    <header className="border-b bg-card/50 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
-            <SparklesIcon className="size-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-semibold">Family Dashboard</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onCreateClick} className="gap-2 border-primary/20 hover:border-primary/50">
-            <PlusIcon className="size-4" />
-            New Workspace
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Log out">
-            <LogOutIcon className="size-4 text-muted-foreground" />
-          </Button>
-        </div>
-      </div>
-    </header>
   );
 }

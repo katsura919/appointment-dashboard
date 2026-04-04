@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useState } from "react"
+
 import { ChevronsUpDown, Plus, Settings2, Home } from "lucide-react"
 import Link from "next/link"
 
@@ -25,7 +26,7 @@ import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog"
 export function WorkspaceSwitcher() {
   const { isMobile } = useSidebar()
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspace()
-  const [createOpen, setCreateOpen] = React.useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
 
   if (!activeWorkspace) return null
 
@@ -34,7 +35,7 @@ export function WorkspaceSwitcher() {
       <SidebarMenu>
         <SidebarMenuItem>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild className="cursor-pointer">
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"

@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useEffect, useRef, useState } from "react"
+
 import {
   DndContext,
   DragOverlay,
@@ -33,22 +34,22 @@ interface Props {
 export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }: Props) {
   const { lanes, setLanes, moveCard, moveLane } = useTrelloStore()
 
-  const [activeCard, setActiveCard] = React.useState<KanbanCardType | null>(null)
-  const [activeLane, setActiveLane] = React.useState<KanbanLaneType | null>(null)
-  const [selectedCard, setSelectedCard] = React.useState<CardDetail | null>(null)
-  const [cardModalOpen, setCardModalOpen] = React.useState(false)
-  const [addingLane, setAddingLane] = React.useState(false)
-  const [newLaneName, setNewLaneName] = React.useState("")
-  const addLaneInputRef = React.useRef<HTMLInputElement>(null)
+  const [activeCard, setActiveCard] = useState<KanbanCardType | null>(null)
+  const [activeLane, setActiveLane] = useState<KanbanLaneType | null>(null)
+  const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null)
+  const [cardModalOpen, setCardModalOpen] = useState(false)
+  const [addingLane, setAddingLane] = useState(false)
+  const [newLaneName, setNewLaneName] = useState("")
+  const addLaneInputRef = useRef<HTMLInputElement>(null)
 
   // Snapshot for optimistic revert
-  const lanesSnapshot = React.useRef<KanbanLaneType[]>([])
+  const lanesSnapshot = useRef<KanbanLaneType[]>([])
 
-  React.useEffect(() => {
+  useEffect(() => {
     setLanes(toLanes(apiData))
   }, [apiData, setLanes])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (addingLane) addLaneInputRef.current?.focus()
   }, [addingLane])
 

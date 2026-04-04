@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useState } from "react"
+
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeftIcon } from "lucide-react"
@@ -22,12 +23,12 @@ export default function BoardPage() {
   const { id } = useParams<{ id: string }>()
   const workspaceId = useWorkspaceId()
 
-  const [project, setProject] = React.useState<ProjectMeta | null>(null)
-  const [boardData, setBoardData] = React.useState<BoardApiResponse | null>(null)
+  const [project, setProject] = useState<ProjectMeta | null>(null)
+  const [boardData, setBoardData] = useState<BoardApiResponse | null>(null)
   // initialLoad controls the full-page skeleton; subsequent refreshes are silent
-  const [initialLoad, setInitialLoad] = React.useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
 
-  const fetchBoard = React.useCallback(async (silent = false) => {
+  const fetchBoard = useCallback(async (silent = false) => {
     if (!id) return
     if (!silent) setInitialLoad(true)
     try {
@@ -44,7 +45,7 @@ export default function BoardPage() {
     }
   }, [id])
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchBoard(false)
   }, [fetchBoard])
 

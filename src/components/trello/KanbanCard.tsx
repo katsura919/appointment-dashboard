@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { CSSProperties } from "react"
+
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { format } from "date-fns"
@@ -20,7 +21,7 @@ export function KanbanCard({ card, onClick, overlay = false }: Props) {
     data: { type: "card", card },
   })
 
-  const style: React.CSSProperties = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.35 : 1,

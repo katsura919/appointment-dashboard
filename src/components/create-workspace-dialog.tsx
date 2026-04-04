@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { FormEvent, useEffect, useState } from "react"
+
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,16 +33,16 @@ interface CreateWorkspaceDialogProps {
 
 
 export function CreateWorkspaceDialog({ open, onOpenChange, onSuccess }: CreateWorkspaceDialogProps) {
-  const [name, setName] = React.useState("")
-  const [loading, setLoading] = React.useState(false)
+  const [name, setName] = useState("")
+  const [loading, setLoading] = useState(false)
   const { setActiveWorkspace } = useWorkspace()
 
   // Reset form when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) setName("")
   }, [open])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
 

@@ -1,8 +1,9 @@
 "use client"
 
+import { ElementType, useCallback, useEffect, useMemo, useState } from "react"
+
 import "react-big-calendar/lib/css/react-big-calendar.css"
 
-import * as React from "react"
 import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar"
 import { format, parse, startOfWeek, getDay, addHours } from "date-fns"
 import { enUS } from "date-fns/locale"
@@ -85,7 +86,7 @@ interface ToolbarProps {
   onNew: () => void
 }
 
-const VIEW_OPTIONS: { value: CalendarView; label: string; icon: React.ElementType }[] = [
+const VIEW_OPTIONS: { value: CalendarView; label: string; icon: ElementType }[] = [
   { value: "month",  label: "Month",  icon: LayoutGridIcon },
   { value: "week",   label: "Week",   icon: CalendarDaysIcon },
   { value: "day",    label: "Day",    icon: ClockIcon },
@@ -190,20 +191,20 @@ function EventComponent({ event }: { event: CalendarEvent }) {
 export default function AppointmentsPage() {
   const workspaceId = useWorkspaceId()
 
-  const [appointments, setAppointments] = React.useState<AppointmentResponse[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [view, setView] = React.useState<CalendarView>("month")
-  const [date, setDate] = React.useState(new Date())
-  const [activeCategories, setActiveCategories] = React.useState<Set<AppointmentCategory>>(
+  const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<CalendarView>("month")
+  const [date, setDate] = useState(new Date())
+  const [activeCategories, setActiveCategories] = useState<Set<AppointmentCategory>>(
     new Set(Object.keys(CATEGORY_META) as AppointmentCategory[])
   )
 
-  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [editingAppointment, setEditingAppointment] =
-    React.useState<AppointmentResponse | null>(null)
-  const [defaultDate, setDefaultDate] = React.useState<string | undefined>()
+    useState<AppointmentResponse | null>(null)
+  const [defaultDate, setDefaultDate] = useState<string | undefined>()
 
-  const fetchAppointments = React.useCallback(async () => {
+  const fetchAppointments = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
     try {
@@ -219,17 +220,17 @@ export default function AppointmentsPage() {
     }
   }, [workspaceId])
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchAppointments()
   }, [fetchAppointments])
 
   // Filter by active categories
-  const visibleAppointments = React.useMemo(
+  const visibleAppointments = useMemo(
     () => appointments.filter((a) => activeCategories.has(a.category)),
     [appointments, activeCategories]
   )
 
-  const events = React.useMemo(
+  const events = useMemo(
     () => toCalendarEvents(visibleAppointments),
     [visibleAppointments]
   )

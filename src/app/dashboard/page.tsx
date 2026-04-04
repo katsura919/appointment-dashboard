@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { ElementType, useCallback, useEffect, useState } from "react"
+
 import {
   isToday,
   isPast,
@@ -37,7 +38,7 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  icon: React.ElementType;
+  icon: ElementType;
   description: string;
 }) {
   return (
@@ -58,15 +59,15 @@ function StatCard({
 
 export default function DashboardPage() {
   const workspaceId = useWorkspaceId();
-  const [appointments, setAppointments] = React.useState<AppointmentResponse[]>(
+  const [appointments, setAppointments] = useState<AppointmentResponse[]>(
     [],
   );
-  const [loading, setLoading] = React.useState(true);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] =
-    React.useState<AppointmentResponse | null>(null);
+    useState<AppointmentResponse | null>(null);
 
-  const fetchAppointments = React.useCallback(async () => {
+  const fetchAppointments = useCallback(async () => {
     if (!workspaceId) {
       setAppointments([]);
       setLoading(false);
@@ -95,7 +96,7 @@ export default function DashboardPage() {
     }
   }, [workspaceId]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 

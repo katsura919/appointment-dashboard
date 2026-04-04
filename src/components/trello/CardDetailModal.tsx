@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useEffect, useState } from "react"
+
 import { toast } from "sonner"
 import { format } from "date-fns"
 import {
@@ -56,17 +57,17 @@ interface Props {
 }
 
 export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted }: Props) {
-  const [title, setTitle] = React.useState("")
-  const [description, setDescription] = React.useState("")
-  const [dueDate, setDueDate] = React.useState("")
-  const [labels, setLabels] = React.useState<{ text: string; color: string }[]>([])
-  const [checklist, setChecklist] = React.useState<{ text: string; checked: boolean }[]>([])
-  const [newChecklistItem, setNewChecklistItem] = React.useState("")
-  const [newLabelText, setNewLabelText] = React.useState("")
-  const [newLabelColor, setNewLabelColor] = React.useState(LABEL_COLORS[0].color)
-  const [saving, setSaving] = React.useState(false)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [dueDate, setDueDate] = useState("")
+  const [labels, setLabels] = useState<{ text: string; color: string }[]>([])
+  const [checklist, setChecklist] = useState<{ text: string; checked: boolean }[]>([])
+  const [newChecklistItem, setNewChecklistItem] = useState("")
+  const [newLabelText, setNewLabelText] = useState("")
+  const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0].color)
+  const [saving, setSaving] = useState(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (card) {
       setTitle(card.title)
       setDescription(card.description ?? "")

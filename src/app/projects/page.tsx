@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useState } from "react"
+
 import { PlusIcon } from "lucide-react"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { Button } from "@/components/ui/button"
@@ -11,11 +12,11 @@ import { useWorkspaceId } from "@/hooks/use-workspace-id"
 
 export default function ProjectsPage() {
   const workspaceId = useWorkspaceId()
-  const [projects, setProjects] = React.useState<ProjectItem[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [projects, setProjects] = useState<ProjectItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
-  const fetchProjects = React.useCallback(async () => {
+  const fetchProjects = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
     try {
@@ -31,7 +32,7 @@ export default function ProjectsPage() {
     }
   }, [workspaceId])
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchProjects()
   }, [fetchProjects])
 
