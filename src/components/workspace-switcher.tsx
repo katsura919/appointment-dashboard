@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus, Settings2 } from "lucide-react"
+import { ChevronsUpDown, Plus, Settings2, Home } from "lucide-react"
 import Link from "next/link"
 
 import {
@@ -57,6 +57,15 @@ export function WorkspaceSwitcher() {
               side={isMobile ? "bottom" : "right"}
               sideOffset={4}
             >
+              <DropdownMenuItem asChild className="gap-2 p-2 cursor-pointer">
+                <Link href="/workspaces">
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                    <Home className="size-4" />
+                  </div>
+                  <div className="font-medium">Home</div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 Workspaces
               </DropdownMenuLabel>

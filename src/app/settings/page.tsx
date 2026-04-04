@@ -58,7 +58,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { UserPlus, Trash2, LogOut, ShieldCheck, User as UserIcon, Shield } from "lucide-react"
+import { UserPlus, Trash2, LogOut, ShieldCheck, User as UserIcon, Shield, X, Settings, Users } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MemberRole = "owner" | "admin" | "member"
@@ -183,7 +183,7 @@ function InviteMemberDialog({
 
 // ─── Settings Page ────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { activeWorkspace, workspaces, setActiveWorkspace } = useWorkspace()
+  const { activeWorkspace, workspaces, setActiveWorkspace, isLoading } = useWorkspace()
   const workspaceId = useWorkspaceId()
   const currentUserId = useUserId()
   const router = useRouter()
@@ -330,6 +330,53 @@ export default function SettingsPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto w-full relative">
+        <Button variant="ghost" size="icon" disabled className="absolute top-6 right-6 text-muted-foreground">
+          <X className="size-5" />
+        </Button>
+        <div className="flex flex-col gap-2 mb-2">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        
+        <div className="flex gap-4 border-b pb-0 mt-2">
+          <Skeleton className="h-10 w-24 rounded-none rounded-t-md" />
+          <Skeleton className="h-10 w-24 rounded-none rounded-t-md" />
+        </div>
+
+        <div className="flex flex-col gap-6 mt-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-72" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <Skeleton className="h-10 w-20" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-96" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   if (!activeWorkspace) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -339,7 +386,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto w-full relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => router.back()}
+        className="absolute top-6 right-6 text-muted-foreground hover:text-foreground cursor-pointer"
+        title="Go back"
+      >
+        <X className="size-5" />
+      </Button>
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -347,14 +403,29 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="workspace">
-        <TabsList>
-          <TabsTrigger value="workspace">Workspace</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
+      <Tabs defaultValue="workspace" className="flex flex-col md:flex-row gap-8 items-start w-full">
+        <TabsList className="flex flex-row md:flex-col h-auto w-full md:w-56 bg-muted/40 p-1.5 shrink-0 rounded-xl gap-0.5">
+          <TabsTrigger
+            value="workspace"
+            className="w-full justify-start px-3 py-2.5 gap-2.5 cursor-pointer rounded-lg text-sm font-medium text-muted-foreground transition-all
+              data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Settings className="size-4 shrink-0" />
+            Workspace
+          </TabsTrigger>
+          <TabsTrigger
+            value="members"
+            className="w-full justify-start px-3 py-2.5 gap-2.5 cursor-pointer rounded-lg text-sm font-medium text-muted-foreground transition-all
+              data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+          >
+            <Users className="size-4 shrink-0" />
+            Members
+          </TabsTrigger>
         </TabsList>
 
-        {/* ── Workspace Tab ──────────────────────────────────────────────── */}
-        <TabsContent value="workspace" className="flex flex-col gap-6 mt-6">
+        <div className="flex-1 w-full min-w-0">
+          {/* ── Workspace Tab ──────────────────────────────────────────────── */}
+          <TabsContent value="workspace" className="flex flex-col gap-6 mt-0">
           {/* Rename */}
           <Card>
             <CardHeader>
@@ -438,7 +509,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ── Members Tab ───────────────────────────────────────────────────── */}
-        <TabsContent value="members" className="flex flex-col gap-6 mt-6">
+        <TabsContent value="members" className="flex flex-col gap-6 mt-0">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div>
@@ -545,6 +616,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        </div>
       </Tabs>
 
       {/* ── Modals ── */}
