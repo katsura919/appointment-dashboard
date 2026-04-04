@@ -56,23 +56,28 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
-  // ── helpers ──────────────────────────────────────────────────────────────
+  // ── helpers — always read live store state, never the render closure ────────
 
-  function findLaneByCardId(cardId: string) {
-    return lanes.find((l) => l.cards.some((c) => c.id === cardId))
+  function getLanes() {
+    return useTrelloStore.getState().lanes
   }
 
-  function findLaneById(laneId: string) {
-    return lanes.find((l) => l.id === laneId)
+  function findLaneByCardId(cardId: string, currentLanes = getLanes()) {
+    return currentLanes.find((l) => l.cards.some((c) => c.id === cardId))
+  }
+
+  function findLaneById(laneId: string, currentLanes = getLanes()) {
+    return currentLanes.find((l) => l.id === laneId)
   }
 
   // ── drag handlers ─────────────────────────────────────────────────────────
 
   function onDragStart({ active }: DragStartEvent) {
-    lanesSnapshot.current = lanes.map((l) => ({ ...l, cards: [...l.cards] }))
+    const current = getLanes()
+    lanesSnapshot.current = current.map((l) => ({ ...l, cards: [...l.cards] }))
     const data = active.data.current
     if (data?.type === "card") setActiveCard(data.card)
-    if (data?.type === "lane") setActiveLane(findLaneById(active.id as string) ?? null)
+    if (data?.type === "lane") setActiveLane(findLaneById(active.id as string, current) ?? null)
   }
 
   function onDragOver({ active, over }: DragOverEvent) {
@@ -80,29 +85,28 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
     const activeData = active.data.current
     if (activeData?.type !== "card") return
 
-    const activeCard = activeData.card as KanbanCardType
-    const fromLane = findLaneByCardId(active.id as string)
+    // Always read the live store — avoids stale closure after previous moveCard calls
+    const current = getLanes()
+    const fromLane = findLaneByCardId(active.id as string, current)
     if (!fromLane) return
 
-    // Determine target lane
     let toLaneId: string
     let toIndex: number
 
     const overData = over.data.current
     if (overData?.type === "card") {
-      const toLane = findLaneByCardId(over.id as string)
+      const toLane = findLaneByCardId(over.id as string, current)
       if (!toLane) return
       toLaneId = toLane.id
       toIndex = toLane.cards.findIndex((c) => c.id === over.id)
     } else if (over.id.toString().startsWith("droppable-")) {
       toLaneId = over.id.toString().replace("droppable-", "")
-      const toLane = findLaneById(toLaneId)
+      const toLane = findLaneById(toLaneId, current)
       if (!toLane) return
       toIndex = toLane.cards.length
     } else {
-      // Dragging over a lane header — move to end of that lane
       toLaneId = over.id as string
-      const toLane = findLaneById(toLaneId)
+      const toLane = findLaneById(toLaneId, current)
       if (!toLane) return
       toIndex = toLane.cards.length
     }
@@ -119,12 +123,24 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
     setActiveCard(null)
     setActiveLane(null)
 
-    if (!over || active.id === over.id) return
     const activeData = active.data.current
 
+    // If dropped outside any droppable → revert
+    if (!over) {
+      setLanes(lanesSnapshot.current)
+      return
+    }
+
+    // Read the final post-optimistic state from the store (never use stale closure)
+    const current = getLanes()
+
+    // ── Lane reorder ──────────────────────────────────────────────────────────
     if (activeData?.type === "lane") {
-      const fromIdx = lanes.findIndex((l) => l.id === active.id)
-      const toIdx = lanes.findIndex((l) => l.id === over.id)
+      // active.id === over.id means dropped back on itself — no change
+      if (active.id === over.id) return
+
+      const fromIdx = current.findIndex((l) => l.id === active.id)
+      const toIdx = current.findIndex((l) => l.id === over.id)
       if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
 
       moveLane(fromIdx, toIdx)
@@ -135,11 +151,24 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
       return
     }
 
+    // ── Card move ─────────────────────────────────────────────────────────────
     if (activeData?.type === "card") {
-      const toLane = findLaneByCardId(active.id as string)
-      if (!toLane) return
-
+      // Find where the card ended up after all the onDragOver moves
+      const toLane = findLaneByCardId(active.id as string, current)
+      if (!toLane) {
+        setLanes(lanesSnapshot.current)
+        return
+      }
       const toIndex = toLane.cards.findIndex((c) => c.id === active.id)
+
+      // Compare with pre-drag snapshot — skip API call only if truly unchanged
+      const snapLane = lanesSnapshot.current.find((l) =>
+        l.cards.some((c) => c.id === active.id)
+      )
+      const snapIndex = snapLane?.cards.findIndex((c) => c.id === active.id) ?? -1
+
+      if (snapLane?.id === toLane.id && snapIndex === toIndex) return
+
       persistCardMove(active.id as string, toLane.id, toIndex).catch(() => {
         setLanes(lanesSnapshot.current)
         toast.error("Failed to move card — reverting")
@@ -212,7 +241,7 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
   // ── lane name update (from child) ─────────────────────────────────────────
 
   function handleLaneRenamed(laneId: string, newName: string) {
-    setLanes(lanes.map((l) => (l.id === laneId ? { ...l, title: newName } : l)))
+    setLanes(getLanes().map((l) => (l.id === laneId ? { ...l, title: newName } : l)))
   }
 
   const laneIds = lanes.map((l) => l.id)
