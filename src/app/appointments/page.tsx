@@ -98,13 +98,28 @@ function CalendarToolbar({ date, view, label, onNavigate, onView, onNew }: Toolb
     <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
       {/* Navigation */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => onNavigate("PREV")}>
+        <Button
+          className="cursor-pointer"
+          variant="outline"
+          size="icon"
+          onClick={() => onNavigate("PREV")}
+        >
           <ChevronLeftIcon className="size-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onNavigate("TODAY")}>
+        <Button
+          className="cursor-pointer"
+          variant="outline"
+          size="sm"
+          onClick={() => onNavigate("TODAY")}
+        >
           Today
         </Button>
-        <Button variant="outline" size="icon" onClick={() => onNavigate("NEXT")}>
+        <Button
+          className="cursor-pointer"
+          variant="outline"
+          size="icon"
+          onClick={() => onNavigate("NEXT")}
+        >
           <ChevronRightIcon className="size-4" />
         </Button>
         <span className="text-base font-semibold ml-1">{label}</span>
@@ -117,7 +132,7 @@ function CalendarToolbar({ date, view, label, onNavigate, onView, onNew }: Toolb
             <button
               key={value}
               onClick={() => onView(value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-r last:border-r-0 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors border-r last:border-r-0 cursor-pointer ${
                 view === value
                   ? "bg-primary text-primary-foreground"
                   : "bg-card text-muted-foreground hover:bg-muted"
@@ -128,13 +143,13 @@ function CalendarToolbar({ date, view, label, onNavigate, onView, onNew }: Toolb
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={onNew}>
+        <Button className="cursor-pointer" size="sm" onClick={onNew}>
           <PlusIcon className="size-4" />
           <span className="hidden sm:inline">New</span>
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Category legend ──────────────────────────────────────────────────────────
@@ -155,7 +170,7 @@ function CategoryLegend({
           <button
             key={cat}
             onClick={() => onToggle(cat)}
-            className={`transition-opacity ${isOn ? "opacity-100" : "opacity-40"}`}
+            className={`transition-opacity cursor-pointer ${isOn ? "opacity-100" : "opacity-40"}`}
           >
             <CategoryBadge category={cat} />
           </button>
