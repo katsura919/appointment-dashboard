@@ -33,6 +33,7 @@ import {
   SparklesIcon,
   CommandIcon,
   ActivityIcon,
+  KanbanIcon,
 } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { useSession } from "next-auth/react"
@@ -42,6 +43,7 @@ const navMain = [
   { title: "Appointments", url: "/appointments", icon: <CalendarIcon /> },
   { title: "Family Members", url: "/family", icon: <UsersIcon /> },
   { title: "Well-Being", url: "/well-being", icon: <ActivityIcon /> },
+  { title: "Projects", url: "/projects", icon: <KanbanIcon /> },
 ]
 
 const navSecondary = [
