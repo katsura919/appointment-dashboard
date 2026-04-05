@@ -179,3 +179,113 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* ─── react-big-calendar theme overrides ────────────────────────────────────── */
+.rbc-calendar {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+/* Month/week/day grid borders */
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  border-color: var(--border);
+}
+
+.rbc-month-row + .rbc-month-row,
+.rbc-day-bg + .rbc-day-bg,
+.rbc-header + .rbc-header,
+.rbc-header,
+.rbc-time-header-content,
+.rbc-time-content,
+.rbc-time-content > * + * > *,
+.rbc-timeslot-group,
+.rbc-time-slot,
+.rbc-day-slot .rbc-time-slot,
+.rbc-day-slot .rbc-events-container,
+.rbc-agenda-view table.rbc-agenda-table,
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
+  border-color: var(--border);
+}
+
+/* Header row */
+.rbc-header {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+}
+
+/* Off-range background (days outside current month) */
+.rbc-off-range-bg {
+  background-color: var(--muted) !important;
+}
+
+/* Off-range date numbers */
+.rbc-off-range {
+  color: var(--muted-foreground);
+}
+
+/* Today highlight */
+.rbc-today {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+}
+
+/* Date cell numbers */
+.rbc-date-cell > a,
+.rbc-date-cell > a:visited {
+  color: var(--foreground);
+}
+
+/* Time gutter (left sidebar with times) */
+.rbc-time-gutter .rbc-timeslot-group {
+  border-color: var(--border);
+}
+
+.rbc-label {
+  color: var(--muted-foreground);
+}
+
+/* Agenda view */
+.rbc-agenda-empty {
+  color: var(--muted-foreground);
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell {
+  color: var(--muted-foreground);
+}
+
+.rbc-agenda-event-cell {
+  color: var(--foreground);
+}
+
+/* "show more" link */
+.rbc-show-more {
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.rbc-show-more:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Overlay / popup */
+.rbc-overlay {
+  background-color: var(--popover);
+  border-color: var(--border);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-md);
+}
+
+.rbc-overlay-header {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+/* Current time indicator */
+.rbc-current-time-indicator {
+  background-color: var(--primary);
+}

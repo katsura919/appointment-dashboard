@@ -41,7 +41,7 @@ const localizer = dateFnsLocalizer({
 
 // ─── Category event colors (raw CSS values for rbc) ──────────────────────────
 
-const CATEGORY_COLORS: Record<AppointmentCategory, { bg: string; color: string }> = {
+const CATEGORY_COLORS_LIGHT: Record<AppointmentCategory, { bg: string; color: string }> = {
   health_wellness:       { bg: "#dbeafe", color: "#1d4ed8" },
   education_development: { bg: "#ede9fe", color: "#7c3aed" },
   activities_enrichment: { bg: "#dcfce7", color: "#16a34a" },
@@ -49,6 +49,16 @@ const CATEGORY_COLORS: Record<AppointmentCategory, { bg: string; color: string }
   family_relationship:   { bg: "#ffe4e6", color: "#be123c" },
   administrative:        { bg: "#f1f5f9", color: "#475569" },
   mom_personal_care:     { bg: "#ccfbf1", color: "#0f766e" },
+}
+
+const CATEGORY_COLORS_DARK: Record<AppointmentCategory, { bg: string; color: string }> = {
+  health_wellness:       { bg: "#1e3a5f", color: "#93c5fd" },
+  education_development: { bg: "#2e1a5e", color: "#c4b5fd" },
+  activities_enrichment: { bg: "#14532d", color: "#86efac" },
+  life_logistics:        { bg: "#431407", color: "#fdba74" },
+  family_relationship:   { bg: "#4c0519", color: "#fda4af" },
+  administrative:        { bg: "#1e293b", color: "#94a3b8" },
+  mom_personal_care:     { bg: "#042f2e", color: "#5eead4" },
 }
 
 // ─── Calendar event type ──────────────────────────────────────────────────────
@@ -208,6 +218,15 @@ export default function AppointmentsPage() {
 
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const update = () => setIsDark(document.documentElement.classList.contains("dark"))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributeFilter: ["class"] })
+    return () => observer.disconnect()
+  }, [])
   const [view, setView] = useState<CalendarView>("month")
   const [date, setDate] = useState(new Date())
   const [activeCategories, setActiveCategories] = useState<Set<AppointmentCategory>>(
@@ -286,7 +305,11 @@ export default function AppointmentsPage() {
   // eventPropGetter — colors by category, dims completed/cancelled
   function eventPropGetter(event: CalendarEvent) {
     const cat = event.resource.category as AppointmentCategory
-    const colors = CATEGORY_COLORS[cat] ?? { bg: "#f1f5f9", color: "#475569" }
+    const palette = isDark ? CATEGORY_COLORS_DARK : CATEGORY_COLORS_LIGHT
+    const fallback = isDark
+      ? { bg: "#1e293b", color: "#94a3b8" }
+      : { bg: "#f1f5f9", color: "#475569" }
+    const colors = palette[cat] ?? fallback
     const isDimmed =
       event.resource.status === "completed" || event.resource.status === "cancelled"
 
