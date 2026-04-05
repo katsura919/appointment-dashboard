@@ -22,11 +22,28 @@ import {
 } from "@/components/ui/sidebar"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function WorkspaceSwitcher() {
   const { isMobile } = useSidebar()
-  const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspace()
+  const { workspaces, activeWorkspace, setActiveWorkspace, isLoading } = useWorkspace()
   const [createOpen, setCreateOpen] = useState(false)
+
+  if (isLoading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <Skeleton className="flex aspect-square size-8 rounded-lg" />
+            <div className="grid flex-1 gap-1.5">
+              <Skeleton className="h-3.5 w-24 rounded" />
+              <Skeleton className="h-3 w-16 rounded" />
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
   if (!activeWorkspace) return null
 
