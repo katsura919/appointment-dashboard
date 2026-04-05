@@ -10,6 +10,7 @@ import {
   isWithinInterval,
   startOfDay,
 } from "date-fns";
+import { format as formatTz } from "date-fns-tz";
 import {
   CalendarIcon,
   ClockIcon,
@@ -27,8 +28,44 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useWorkspace } from "@/contexts/workspace-context";
 import type { AppointmentResponse, AppointmentStatus } from "@/lib/types";
+
+function WorkspaceClock({ timezone }: { timezone: string }) {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const timeStr = formatTz(now, "hh:mm:ss aa", { timeZone: timezone })
+  const dateStr = formatTz(now, "EEEE, MMMM d, yyyy", { timeZone: timezone })
+
+  // Derive a friendly label from the IANA timezone string
+  const tzLabel = timezone === "UTC"
+    ? "UTC"
+    : timezone.replace(/_/g, " ").split("/").pop() ?? timezone
+
+  return (
+    <div className="flex items-center gap-3 px-4 lg:px-6">
+      <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-4 py-2.5">
+        <ClockIcon className="size-4 text-muted-foreground shrink-0" />
+        <div className="flex items-baseline gap-2">
+          <span className="text-xl font-semibold tabular-nums tracking-tight">
+            {timeStr}
+          </span>
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            {dateStr}
+          </span>
+        </div>
+        <span className="ml-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+          {tzLabel}
+        </span>
+      </div>
+    </div>
+  )
+}
 
 function StatCard({
   label,
@@ -58,7 +95,9 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  const workspaceId = useWorkspaceId();
+  const { activeWorkspace } = useWorkspace();
+  const workspaceId = activeWorkspace?._id ?? null;
+  const timezone = activeWorkspace?.timezone ?? "UTC";
   const [appointments, setAppointments] = useState<AppointmentResponse[]>(
     [],
   );
@@ -154,6 +193,9 @@ export default function DashboardPage() {
   return (
     <DashboardShell title="Dashboard">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        {/* Workspace clock */}
+        <WorkspaceClock timezone={timezone} />
+
         {/* Stat cards */}
         <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
           <StatCard
@@ -209,6 +251,7 @@ export default function DashboardPage() {
             if (!open) setEditingAppointment(null);
           }}
           workspaceId={workspaceId}
+          timezone={timezone}
           appointment={editingAppointment}
           onSuccess={fetchAppointments}
         />

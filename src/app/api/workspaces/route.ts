@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const CreateWorkspaceSchema = z.object({
   name: z.string().min(1).trim(),
+  timezone: z.string().min(1).default("UTC"),
 });
 
 import { getServerUserId } from "@/lib/server-auth";
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
 
     const workspace = await Workspace.create({
       name: parsed.data.name,
+      timezone: parsed.data.timezone,
       ownerId: userId,
       members: [
         {

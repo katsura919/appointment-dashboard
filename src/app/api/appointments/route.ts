@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
     const appointment = await Appointment.create({
         ...parsed.data,
         workspaceId: workspace._id,
+        timezone: (workspace as any).timezone ?? "UTC",
         createdBy: userId,
         updatedBy: userId,
     });

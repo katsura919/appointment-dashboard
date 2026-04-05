@@ -16,11 +16,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PlusIcon } from "lucide-react"
-import { useWorkspaceId } from "@/hooks/use-workspace-id"
+import { useWorkspace } from "@/contexts/workspace-context"
 import type { WellBeingLogResponse } from "@/lib/types"
 
 export default function WellBeingPage() {
-  const workspaceId = useWorkspaceId()
+  const { activeWorkspace } = useWorkspace()
+  const workspaceId = activeWorkspace?._id ?? null
+  const timezone = activeWorkspace?.timezone ?? "UTC"
   const [logs, setLogs] = useState<WellBeingLogResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [showCheckIn, setShowCheckIn] = useState(false)
@@ -94,7 +96,7 @@ export default function WellBeingPage() {
                 How are you feeling today? Rate your metrics to track your well-being.
               </DialogDescription>
             </DialogHeader>
-            <WellBeingForm workspaceId={workspaceId ?? ""} onSuccess={handleLogSuccess} />
+            <WellBeingForm workspaceId={workspaceId ?? ""} timezone={timezone} onSuccess={handleLogSuccess} />
           </DialogContent>
         </Dialog>
 

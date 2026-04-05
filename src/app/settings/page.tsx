@@ -61,6 +61,32 @@ import {
 } from "@/components/ui/alert-dialog"
 import { UserPlus, Trash2, LogOut, ShieldCheck, User as UserIcon, Shield, X, Settings, Users } from "lucide-react"
 
+// ─── Timezone options ─────────────────────────────────────────────────────────
+const TIMEZONE_OPTIONS = [
+  // United States
+  { value: "America/New_York",    label: "Eastern Time (US & Canada)" },
+  { value: "America/Chicago",     label: "Central Time (US & Canada)" },
+  { value: "America/Denver",      label: "Mountain Time (US & Canada)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
+  { value: "America/Anchorage",   label: "Alaska" },
+  { value: "Pacific/Honolulu",    label: "Hawaii" },
+  // Asia / Pacific
+  { value: "Asia/Manila",         label: "Manila (Philippines, UTC+8)" },
+  { value: "Asia/Singapore",      label: "Singapore (UTC+8)" },
+  { value: "Asia/Tokyo",          label: "Tokyo (UTC+9)" },
+  { value: "Asia/Seoul",          label: "Seoul (UTC+9)" },
+  { value: "Asia/Hong_Kong",      label: "Hong Kong (UTC+8)" },
+  { value: "Asia/Dubai",          label: "Dubai (UTC+4)" },
+  { value: "Asia/Kolkata",        label: "Mumbai / New Delhi (UTC+5:30)" },
+  { value: "Australia/Sydney",    label: "Sydney (UTC+10/11)" },
+  // Europe
+  { value: "Europe/London",       label: "London (UTC+0/1)" },
+  { value: "Europe/Paris",        label: "Paris / Berlin (UTC+1/2)" },
+  { value: "Europe/Helsinki",     label: "Helsinki / Athens (UTC+2/3)" },
+  // Universal
+  { value: "UTC",                 label: "UTC" },
+]
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MemberRole = "owner" | "admin" | "member"
 
@@ -192,6 +218,8 @@ export default function SettingsPage() {
   // Workspace tab state
   const [wsName, setWsName] = useState("")
   const [savingName, setSavingName] = useState(false)
+  const [wsTimezone, setWsTimezone] = useState("UTC")
+  const [savingTimezone, setSavingTimezone] = useState(false)
 
   // Members tab state
   const [members, setMembers] = useState<WorkspaceMember[]>([])
@@ -203,9 +231,10 @@ export default function SettingsPage() {
   const [removeMemberTarget, setRemoveMemberTarget] = useState<WorkspaceMember | null>(null)
   const [leaveOpen, setLeaveOpen] = useState(false)
 
-  // Sync name field when active workspace changes
+  // Sync name and timezone fields when active workspace changes
   useEffect(() => {
     setWsName(activeWorkspace?.name ?? "")
+    setWsTimezone(activeWorkspace?.timezone ?? "UTC")
   }, [activeWorkspace])
 
   // Fetch members whenever the workspace changes
@@ -251,6 +280,29 @@ export default function SettingsPage() {
       toast.error(error instanceof Error ? error.message : "Failed to rename")
     } finally {
       setSavingName(false)
+    }
+  }
+
+  // ── Update timezone ─────────────────────────────────────────────────────────
+  async function handleTimezoneUpdate(tz: string) {
+    if (!workspaceId || tz === activeWorkspace?.timezone) return
+    setWsTimezone(tz)
+    setSavingTimezone(true)
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: tz }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success("Timezone updated")
+      if (activeWorkspace) setActiveWorkspace({ ...activeWorkspace, timezone: tz })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update timezone")
+      setWsTimezone(activeWorkspace?.timezone ?? "UTC")
+    } finally {
+      setSavingTimezone(false)
     }
   }
 
@@ -460,6 +512,45 @@ export default function SettingsPage() {
                   Only owners and admins can rename the workspace.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Timezone */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Appointment Timezone</CardTitle>
+              <CardDescription>
+                All appointment times are interpreted and displayed in this timezone. Set it to your client&apos;s local timezone.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ws-timezone">Timezone</Label>
+                <Select
+                  value={wsTimezone}
+                  onValueChange={handleTimezoneUpdate}
+                  disabled={!canManage || savingTimezone}
+                >
+                  <SelectTrigger id="ws-timezone">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {savingTimezone && (
+                  <p className="text-xs text-muted-foreground">Saving…</p>
+                )}
+                {!canManage && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Only owners and admins can change the timezone.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
 

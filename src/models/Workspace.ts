@@ -7,6 +7,7 @@ export interface IWorkspaceMember {
 
 export interface IWorkspace extends Document {
   name: string
+  timezone: string
   ownerId: mongoose.Types.ObjectId | string
   members: IWorkspaceMember[]
   createdAt: Date
@@ -16,6 +17,7 @@ export interface IWorkspace extends Document {
 const WorkspaceSchema = new Schema<IWorkspace>(
   {
     name: { type: String, required: true, trim: true },
+    timezone: { type: String, default: "UTC" },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     members: [
       {

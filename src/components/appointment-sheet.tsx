@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react"
 
-import { format } from "date-fns"
+import { toZonedTime, fromZonedTime, format as formatTz } from "date-fns-tz"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,7 @@ interface AppointmentSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   workspaceId: string
+  timezone: string
   appointment?: AppointmentResponse | null
   defaultDate?: string // ISO date string, used when creating from a calendar slot
   onSuccess: () => void
@@ -47,6 +48,7 @@ export function AppointmentSheet({
   open,
   onOpenChange,
   workspaceId,
+  timezone,
   appointment,
   defaultDate,
   onSuccess,
@@ -97,14 +99,14 @@ export function AppointmentSheet({
       setStatus(appointment.status ?? "upcoming")
       setMemberIds(appointment.memberIds?.map(m => m._id) ?? (appointment.memberId ? [appointment.memberId._id] : []))
       
-      const start = new Date(appointment.startsAt || appointment.date || "")
-      setDate(format(start, "yyyy-MM-dd"))
-      setTime(format(start, "HH:mm"))
+      const start = toZonedTime(new Date(appointment.startsAt || appointment.date || ""), timezone)
+      setDate(formatTz(start, "yyyy-MM-dd", { timeZone: timezone }))
+      setTime(formatTz(start, "HH:mm", { timeZone: timezone }))
 
       if (appointment.endsAt) {
-        const end = new Date(appointment.endsAt)
-        setEndDate(format(end, "yyyy-MM-dd"))
-        setEndTime(format(end, "HH:mm"))
+        const end = toZonedTime(new Date(appointment.endsAt), timezone)
+        setEndDate(formatTz(end, "yyyy-MM-dd", { timeZone: timezone }))
+        setEndTime(formatTz(end, "HH:mm", { timeZone: timezone }))
       } else {
         setEndDate("")
         setEndTime("")
@@ -115,7 +117,9 @@ export function AppointmentSheet({
       setIsRecurring(appointment.isRecurring)
       setFrequency(appointment.recurrence?.frequency ?? "monthly")
       setInterval(appointment.recurrence?.interval ?? 1)
-      setRecurrenceEndDate(appointment.recurrence?.endDate ? format(new Date(appointment.recurrence.endDate), "yyyy-MM-dd") : "")
+      setRecurrenceEndDate(appointment.recurrence?.endDate
+        ? formatTz(toZonedTime(new Date(appointment.recurrence.endDate), timezone), "yyyy-MM-dd", { timeZone: timezone })
+        : "")
       setReminderRules(appointment.reminderRules ?? [])
     } else if (open && !appointment) {
       setTitle("")
@@ -143,18 +147,20 @@ export function AppointmentSheet({
 
     setLoading(true)
     try {
-      const startsAt = time 
-        ? new Date(`${date}T${time}:00`).toISOString()
-        : new Date(`${date}T00:00:00`).toISOString()
+      const startsAt = fromZonedTime(
+        `${date}T${time ? `${time}:00` : "00:00:00"}`,
+        timezone
+      ).toISOString()
 
       let endsAt: string | undefined
       if (endDate) {
-        endsAt = endTime 
-          ? new Date(`${endDate}T${endTime}:00`).toISOString()
-          : new Date(`${endDate}T23:59:59`).toISOString()
+        endsAt = fromZonedTime(
+          `${endDate}T${endTime ? `${endTime}:00` : "23:59:59"}`,
+          timezone
+        ).toISOString()
       } else if (time && endTime) {
-         // Same day, different time
-         endsAt = new Date(`${date}T${endTime}:00`).toISOString()
+        // Same day, different time
+        endsAt = fromZonedTime(`${date}T${endTime}:00`, timezone).toISOString()
       }
 
       const body: Record<string, unknown> = {
@@ -172,10 +178,12 @@ export function AppointmentSheet({
       }
 
       if (isRecurring) {
-        body.recurrence = { 
-          frequency, 
+        body.recurrence = {
+          frequency,
           interval,
-          endDate: recurrenceEndDate ? new Date(recurrenceEndDate).toISOString() : undefined
+          endDate: recurrenceEndDate
+            ? fromZonedTime(`${recurrenceEndDate}T00:00:00`, timezone).toISOString()
+            : undefined,
         }
       }
 

@@ -14,6 +14,7 @@ export type RecurrenceFrequency = "weekly" | "monthly" | "yearly"
 
 export interface IAppointment extends Document {
   workspaceId: mongoose.Types.ObjectId | string
+  timezone: string
   title: string
   category: AppointmentCategory
   subcategory?: string
@@ -61,6 +62,7 @@ const CATEGORIES: AppointmentCategory[] = [
 const AppointmentSchema = new Schema<IAppointment>(
   {
     workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
+    timezone: { type: String, default: "UTC" },
     title: { type: String, required: true, trim: true },
     category: { type: String, enum: CATEGORIES, required: true },
     subcategory: { type: String, trim: true },

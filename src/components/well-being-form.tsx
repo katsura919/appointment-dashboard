@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react"
 
+import { fromZonedTime, format as formatTz } from "date-fns-tz"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea"
 
 interface WellBeingFormProps {
   workspaceId: string
+  timezone: string
   onSuccess?: () => void
 }
 
-export function WellBeingForm({ workspaceId, onSuccess }: WellBeingFormProps) {
+export function WellBeingForm({ workspaceId, timezone, onSuccess }: WellBeingFormProps) {
   const [saving, setSaving] = useState(false)
 
   // Default scales of 3 out of 5
@@ -38,8 +40,13 @@ export function WellBeingForm({ workspaceId, onSuccess }: WellBeingFormProps) {
       .map((t) => t.trim())
       .filter(Boolean)
 
+    // "Today" anchored to the workspace timezone — not the browser's local clock.
+    // e.g. 11 PM New York → still April 10 in New York, not April 11 UTC.
+    const todayInTz = formatTz(new Date(), "yyyy-MM-dd", { timeZone: timezone })
+    const date = fromZonedTime(`${todayInTz}T00:00:00`, timezone).toISOString()
+
     const payload = {
-      date: new Date().toISOString(),
+      date,
       tags,
       notes: notes.trim() || undefined,
       metrics: {

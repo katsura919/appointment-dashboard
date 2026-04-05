@@ -19,6 +19,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 interface Workspace {
   _id: string
   name: string
+  timezone: string
   ownerId: string
   members: Array<{ userId: string; role: string }>
 }

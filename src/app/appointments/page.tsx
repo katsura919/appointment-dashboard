@@ -7,6 +7,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css"
 import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar"
 import { format, parse, startOfWeek, getDay, addHours } from "date-fns"
 import { enUS } from "date-fns/locale"
+import { toZonedTime } from "date-fns-tz"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CATEGORY_META, type AppointmentCategory } from "@/lib/categories"
-import { useWorkspaceId } from "@/hooks/use-workspace-id"
+import { useWorkspace } from "@/contexts/workspace-context"
 import type { AppointmentResponse } from "@/lib/types"
 
 // ─── date-fns localizer ───────────────────────────────────────────────────────
@@ -71,14 +72,14 @@ interface CalendarEvent {
   resource: AppointmentResponse
 }
 
-function toCalendarEvents(appointments: AppointmentResponse[]): CalendarEvent[] {
+function toCalendarEvents(appointments: AppointmentResponse[], timezone: string): CalendarEvent[] {
   return appointments.map((a) => {
-    const start = new Date(a.startsAt || a.date || "")
+    const start = toZonedTime(new Date(a.startsAt || a.date || ""), timezone)
     if (a.time && !a.startsAt) {
       const [h, m] = a.time.split(":").map(Number)
       start.setHours(h, m, 0, 0)
     }
-    const end = a.endsAt ? new Date(a.endsAt) : addHours(start, 1)
+    const end = a.endsAt ? toZonedTime(new Date(a.endsAt), timezone) : addHours(start, 1)
     return { id: a._id, title: a.title, start, end, resource: a }
   })
 }
@@ -214,7 +215,9 @@ function EventComponent({ event }: { event: CalendarEvent }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
-  const workspaceId = useWorkspaceId()
+  const { activeWorkspace } = useWorkspace()
+  const workspaceId = activeWorkspace?._id ?? null
+  const timezone = activeWorkspace?.timezone ?? "UTC"
 
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -265,8 +268,8 @@ export default function AppointmentsPage() {
   )
 
   const events = useMemo(
-    () => toCalendarEvents(visibleAppointments),
-    [visibleAppointments]
+    () => toCalendarEvents(visibleAppointments, timezone),
+    [visibleAppointments, timezone]
   )
 
   function toggleCategory(cat: AppointmentCategory) {
@@ -414,6 +417,7 @@ export default function AppointmentsPage() {
           open={sheetOpen}
           onOpenChange={handleSheetClose}
           workspaceId={workspaceId}
+          timezone={timezone}
           appointment={editingAppointment}
           defaultDate={defaultDate}
           onSuccess={fetchAppointments}

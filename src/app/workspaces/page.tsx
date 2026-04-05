@@ -38,6 +38,7 @@ import { formatDistanceToNow } from "date-fns";
 interface Workspace {
   _id: string;
   name: string;
+  timezone: string;
   ownerId: string;
   members: Array<{ userId: string; role: string }>;
   createdAt?: string;
