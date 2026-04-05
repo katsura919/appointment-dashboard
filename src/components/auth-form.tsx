@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Lottie from "lottie-react";
+import catLoading from "../../public/lotties/cat-loading.json";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
@@ -48,6 +50,7 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState<{ name: string } | null>(null);
 
   // Show NextAuth error passed via ?error= query param (e.g. after Google OAuth failure)
   useEffect(() => {
@@ -96,8 +99,8 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
       if (isLogin) {
         setAuth(data.user, data.token);
         document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
-        toast.success("Logged in successfully!");
-        router.push("/workspaces");
+        setRedirecting({ name: data.user?.name ?? "" });
+        setTimeout(() => router.push("/workspaces"), 1800);
       } else {
         toast.success("Account created successfully! Redirecting to login...");
         setTimeout(() => {
@@ -127,6 +130,21 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
       toast.error("Google sign-in failed. Please try again.");
       setGoogleLoading(false);
     }
+  }
+
+  if (redirecting !== null || googleLoading) {
+    const firstName = redirecting?.name.split(" ")[0] ?? "";
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
+        <Lottie animationData={catLoading} loop className="size-48" />
+        <div className="flex flex-col items-center gap-1 text-center">
+          <p className="text-lg font-semibold tracking-tight text-foreground">
+            {firstName ? `Welcome back, ${firstName}!` : "Welcome back!"}
+          </p>
+          <p className="text-sm text-muted-foreground">Opening your workspaces…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
