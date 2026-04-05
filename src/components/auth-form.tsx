@@ -8,6 +8,7 @@ import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,6 +52,8 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [redirecting, setRedirecting] = useState<{ name: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Show NextAuth error passed via ?error= query param (e.g. after Google OAuth failure)
   useEffect(() => {
@@ -73,6 +76,15 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
     const name = !isLogin
       ? (form.elements.namedItem("name") as HTMLInputElement).value
       : undefined;
+
+    if (!isLogin) {
+      const confirmPassword = (form.elements.namedItem("confirmPassword") as HTMLInputElement).value;
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match.");
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
@@ -169,6 +181,7 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
                   type="button"
                   disabled={googleLoading}
                   onClick={handleGoogleSignIn}
+                  className="cursor-pointer"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -183,9 +196,11 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
                       : "Sign up with Google"}
                 </Button>
               </Field>
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with
-              </FieldSeparator>
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">Or continue with</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
               {!isLogin && (
                 <Field>
                   <FieldLabel htmlFor="name">Name</FieldLabel>
@@ -220,10 +235,48 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
                     </a>
                   )}
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </Field>
+              {!isLogin && (
+                <Field>
+                  <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      className="pr-10 cursor-pointer"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </Field>
+              )}
               <Field>
-                <Button type="submit" disabled={loading}>
+                <Button className="w-full cursor-pointer" type="submit" disabled={loading}>
                   {loading
                     ? isLogin
                       ? "Logging in..."

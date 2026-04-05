@@ -68,7 +68,7 @@ function WorkspaceCard({
   return (
     <button
       onClick={() => onSelect(workspace)}
-      className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
     >
       <div className={`flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-sm`}>
         <span className="text-xl font-bold text-white">{initial}</span>
@@ -164,7 +164,7 @@ function PageHeader({ onCreateClick }: { onCreateClick: () => void }) {
             variant="outline"
             size="sm"
             onClick={onCreateClick}
-            className="gap-1.5 hidden sm:inline-flex"
+            className="gap-1.5 hidden sm:inline-flex cursor-pointer"
           >
             <PlusIcon className="size-3.5" />
             New Workspace
@@ -306,7 +306,7 @@ export default function WorkspacesPage() {
               {/* Create new tile */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-transparent py-12 text-muted-foreground transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-transparent py-12 text-muted-foreground transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
               >
                 <div className="flex size-12 items-center justify-center rounded-xl border border-dashed border-current">
                   <PlusIcon className="size-5" />
