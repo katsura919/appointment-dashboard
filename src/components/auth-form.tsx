@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Lottie from "lottie-react";
 import catLoading from "../../public/lotties/cat-loading.json";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
@@ -48,6 +48,16 @@ export function AuthForm({ mode, className, ...props }: AuthFormProps) {
   const searchParams = useSearchParams();
   const isLogin = mode === "login";
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  // Clear all stale auth state when landing on the login page
+  useEffect(() => {
+    if (isLogin) {
+      clearAuth()
+      signOut({ redirect: false })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);

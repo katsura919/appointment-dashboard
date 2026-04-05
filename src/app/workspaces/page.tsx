@@ -31,6 +31,7 @@ import {
   SettingsIcon,
   SunIcon,
   MoonIcon,
+  Loader2Icon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { formatDistanceToNow } from "date-fns";
@@ -125,10 +126,11 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
 
 // ── Page Header ───────────────────────────────────────────────────────────────
 function PageHeader({ onCreateClick }: { onCreateClick: () => void }) {
-  const { clearAuth } = useAuthStore();
   const router = useRouter();
   const { data: session } = useSession();
   const { resolvedTheme, setTheme } = useTheme();
+  const { clearAuth } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const name = session?.user?.name ?? "User";
   const email = session?.user?.email ?? "";
@@ -141,11 +143,21 @@ function PageHeader({ onCreateClick }: { onCreateClick: () => void }) {
     .slice(0, 2);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     clearAuth();
-    document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "auth-token=; path=/; max-age=0";
     await signOut({ redirect: false });
-    router.push("/login");
+    window.location.href = "/login";
   };
+
+  if (isLoggingOut) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
+        <Loader2Icon className="size-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Signing out...</p>
+      </div>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
@@ -249,8 +261,7 @@ export default function WorkspacesPage() {
   useEffect(() => {
     const isUnauthenticated = status === "unauthenticated" && !isAuthenticated;
     if (isUnauthenticated) {
-      document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      signOut({ redirect: false }).then(() => router.push("/login"));
+      window.location.href = "/login";
     }
   }, [status, isAuthenticated, router]);
 
