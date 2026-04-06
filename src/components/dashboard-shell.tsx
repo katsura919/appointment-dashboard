@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { Skeleton } from "@/components/ui/skeleton"
+import { FullPageLoader } from "@/components/full-page-loader"
 
 export function DashboardShell({
   title,
@@ -26,27 +26,9 @@ export function DashboardShell({
     }
   }, [isLoading, activeWorkspace, router])
 
-  // Show a loading skeleton while checking context or if we are about to redirect
+  // Show a full-page loader while checking context or if we are about to redirect
   if (isLoading || (!isLoading && !activeWorkspace)) {
-    return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader title={title} />
-          <div className="flex flex-1 flex-col p-6 items-center justify-center">
-            <Skeleton className="h-10 w-48 mb-4 rounded-lg" />
-            <div className="text-muted-foreground text-sm">Loading workspace...</div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    )
+    return <FullPageLoader />
   }
 
   return (
