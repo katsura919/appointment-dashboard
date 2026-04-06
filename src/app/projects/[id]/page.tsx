@@ -212,7 +212,7 @@ export default function BoardPage() {
                         : [...f.activeLabels, label.text],
                     }))
                   }
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-white border-2 transition-all ${
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-white border-2 transition-all cursor-pointer ${
                     active ? "border-white/60 scale-105" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                   style={{ backgroundColor: label.color }}
@@ -237,7 +237,7 @@ export default function BoardPage() {
                         : [...f.activeAssignees, member.id],
                     }))
                   }
-                  className={`size-7 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-semibold uppercase transition-all ${
+                  className={`size-7 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-semibold uppercase transition-all cursor-pointer ${
                     active ? "ring-2 ring-primary ring-offset-1 scale-110" : "opacity-70 hover:opacity-100"
                   }`}
                 >

@@ -49,7 +49,7 @@ export function ProjectCard({ project, workspaceId, onArchived, onEdited }: Prop
 
   return (
     <>
-      <div className="group relative rounded-xl border bg-card hover:shadow-md transition-shadow overflow-hidden">
+      <div className="group relative rounded-xl border bg-card hover:shadow-md transition-shadow overflow-hidden cursor-pointer">
         {/* Color bar */}
         <div className="h-2 w-full" style={{ backgroundColor: project.color ?? "#6366f1" }} />
 

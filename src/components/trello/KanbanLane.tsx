@@ -209,7 +209,7 @@ export function KanbanLane({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-6 opacity-50 hover:opacity-100">
+            <Button variant="ghost" size="icon" className="size-6 opacity-50 hover:opacity-100 cursor-pointer">
               <MoreHorizontalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>

@@ -5,7 +5,7 @@ import { CSSProperties } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { format } from "date-fns"
-import { CalendarIcon, CheckSquareIcon, GripVerticalIcon } from "lucide-react"
+import { CalendarIcon, CheckSquareIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { KanbanCard as KanbanCardType } from "@/store/trello-store"
 
@@ -36,6 +36,9 @@ export function KanbanCard({ card, onClick, overlay = false }: Props) {
     <div
       ref={setNodeRef}
       style={style}
+      {...listeners}
+      {...attributes}
+      onClick={() => !overlay && onClick(card)}
       className={`group bg-card border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow select-none ${
         overlay ? "shadow-lg rotate-1" : ""
       }`}
@@ -43,20 +46,9 @@ export function KanbanCard({ card, onClick, overlay = false }: Props) {
       {card.coverColor && (
         <div className="h-8 w-full" style={{ backgroundColor: card.coverColor }} />
       )}
-      <div className={`flex items-start gap-1.5 px-3 py-2.5`}>
-        {/* Drag handle */}
-        <button
-          {...listeners}
-          {...attributes}
-          className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-muted-foreground"
-          onClick={(e) => e.stopPropagation()}
-          tabIndex={-1}
-        >
-          <GripVerticalIcon className="size-3.5" />
-        </button>
-
+      <div className="px-3 py-2.5">
         {/* Card content */}
-        <div className="flex-1 min-w-0" onClick={() => onClick(card)}>
+        <div className="min-w-0">
           {/* Labels */}
           {card.labels && card.labels.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1.5">
