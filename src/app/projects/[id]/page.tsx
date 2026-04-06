@@ -4,12 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeftIcon, XIcon, ArchiveIcon, RotateCcwIcon } from "lucide-react"
+import { ChevronLeftIcon, XIcon, ArchiveIcon, RotateCcwIcon, Loader2Icon } from "lucide-react"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { TrelloBoard, type BoardFilters } from "@/components/trello/TrelloBoard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -157,13 +163,13 @@ export default function BoardPage() {
           )}
           <div className="ml-auto">
             <Button
-              variant={showArchived ? "default" : "outline"}
+              variant="outline"
               size="sm"
               className="h-7 text-xs gap-1.5"
-              onClick={() => setShowArchived((v) => !v)}
+              onClick={() => setShowArchived(true)}
             >
               <ArchiveIcon className="size-3.5" />
-              {showArchived ? "Hide Archived" : "Archived"}
+              Archived
             </Button>
           </div>
         </div>
@@ -283,86 +289,95 @@ export default function BoardPage() {
             filters={filters}
           />
         )}
-        {/* Archived items panel */}
-        {showArchived && (
-          <div className="border rounded-xl bg-muted/20 p-4 space-y-4">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <ArchiveIcon className="size-4" />
-              Archived Items
-            </h3>
-            {archivedLoading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : !archivedData ||
-              (archivedData.pipelines.length === 0 && archivedData.cards.length === 0) ? (
-              <p className="text-sm text-muted-foreground">No archived items.</p>
-            ) : (
-              <div className="space-y-3">
-                {archivedData.pipelines.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Pipelines
-                    </p>
-                    {archivedData.pipelines.map((p) => (
-                      <div
-                        key={(p as unknown as { _id: string })._id}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-card border text-sm"
-                      >
-                        <span className="font-medium">{p.name}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          disabled={restoringId === (p as unknown as { _id: string })._id}
-                          onClick={() =>
-                            handleRestore(
-                              "pipeline",
-                              (p as unknown as { _id: string })._id,
-                              p.workspaceId.toString()
-                            )
-                          }
-                        >
-                          <RotateCcwIcon className="size-3" />
-                          Restore
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {archivedData.cards.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Cards
-                    </p>
-                    {archivedData.cards.map((c) => (
-                      <div
-                        key={(c as unknown as { _id: string })._id}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-card border text-sm"
-                      >
-                        <span className="font-medium">{c.title}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          disabled={restoringId === (c as unknown as { _id: string })._id}
-                          onClick={() =>
-                            handleRestore(
-                              "card",
-                              (c as unknown as { _id: string })._id,
-                              c.workspaceId.toString()
-                            )
-                          }
-                        >
-                          <RotateCcwIcon className="size-3" />
-                          Restore
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Archived items modal */}
+        <Dialog open={showArchived} onOpenChange={setShowArchived}>
+          <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ArchiveIcon className="size-4" />
+                Archived Items
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              {archivedLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-11 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : !archivedData ||
+                (archivedData.pipelines.length === 0 && archivedData.cards.length === 0) ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No archived items.</p>
+              ) : (
+                <div className="space-y-4">
+                  {archivedData.pipelines.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+                        Pipelines
+                      </p>
+                      {archivedData.pipelines.map((p) => {
+                        const pid = (p as unknown as { _id: string })._id
+                        const isRestoring = restoringId === pid
+                        return (
+                          <div
+                            key={pid}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/40 border text-sm"
+                          >
+                            <span className="font-medium truncate mr-3">{p.name}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1.5 shrink-0"
+                              disabled={isRestoring}
+                              onClick={() => handleRestore("pipeline", pid, p.workspaceId.toString())}
+                            >
+                              {isRestoring
+                                ? <Loader2Icon className="size-3 animate-spin" />
+                                : <RotateCcwIcon className="size-3" />}
+                              Restore
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {archivedData.cards.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+                        Cards
+                      </p>
+                      {archivedData.cards.map((c) => {
+                        const cid = (c as unknown as { _id: string })._id
+                        const isRestoring = restoringId === cid
+                        return (
+                          <div
+                            key={cid}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/40 border text-sm"
+                          >
+                            <span className="font-medium truncate mr-3">{c.title}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1.5 shrink-0"
+                              disabled={isRestoring}
+                              onClick={() => handleRestore("card", cid, c.workspaceId.toString())}
+                            >
+                              {isRestoring
+                                ? <Loader2Icon className="size-3 animate-spin" />
+                                : <RotateCcwIcon className="size-3" />}
+                              Restore
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardShell>
   )

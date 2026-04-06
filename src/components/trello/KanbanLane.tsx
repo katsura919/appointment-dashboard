@@ -5,7 +5,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react"
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useDroppable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { PlusIcon, GripVerticalIcon, MoreHorizontalIcon, Trash2Icon, PencilIcon } from "lucide-react"
+import { PlusIcon, GripVerticalIcon, MoreHorizontalIcon, Trash2Icon, PencilIcon, Loader2Icon } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +52,7 @@ export function KanbanLane({
 }: Props) {
   const visibleCards = displayCards ?? lane.cards
   const [addingCard, setAddingCard] = useState(false)
+  const [addingCardLoading, setAddingCardLoading] = useState(false)
   const [newCardTitle, setNewCardTitle] = useState("")
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(lane.title)
@@ -85,6 +86,7 @@ export function KanbanLane({
 
   async function handleAddCard() {
     if (!newCardTitle.trim()) return
+    setAddingCardLoading(true)
     try {
       const res = await fetch("/api/trello/cards", {
         method: "POST",
@@ -97,6 +99,8 @@ export function KanbanLane({
       onCardAdded()
     } catch {
       toast.error("Failed to add card")
+    } finally {
+      setAddingCardLoading(false)
     }
   }
 
@@ -241,6 +245,13 @@ export function KanbanLane({
           ))}
         </SortableContext>
 
+        {addingCardLoading && (
+          <div className="rounded-lg border bg-card px-3 py-2.5 space-y-2 animate-pulse">
+            <div className="h-3 w-3/4 rounded bg-muted" />
+            <div className="h-2.5 w-1/2 rounded bg-muted" />
+          </div>
+        )}
+
         {addingCard ? (
           <div className="space-y-1.5">
             <Input
@@ -249,19 +260,27 @@ export function KanbanLane({
               onChange={(e) => setNewCardTitle(e.target.value)}
               placeholder="Card title"
               className="h-8 text-sm bg-card"
+              disabled={addingCardLoading}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleAddCard()
-                if (e.key === "Escape") { setAddingCard(false); setNewCardTitle("") }
+                if (e.key === "Escape" && !addingCardLoading) { setAddingCard(false); setNewCardTitle("") }
               }}
             />
             <div className="flex gap-1.5">
-              <Button size="sm" className="h-7 text-xs" onClick={handleAddCard} disabled={!newCardTitle.trim()}>
+              <Button
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={handleAddCard}
+                disabled={!newCardTitle.trim() || addingCardLoading}
+              >
+                {addingCardLoading && <Loader2Icon className="size-3 animate-spin" />}
                 Add
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs"
+                disabled={addingCardLoading}
                 onClick={() => { setAddingCard(false); setNewCardTitle("") }}
               >
                 Cancel

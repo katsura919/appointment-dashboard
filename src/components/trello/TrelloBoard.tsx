@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable"
 import { toast } from "sonner"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, Loader2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { KanbanLane } from "@/components/trello/KanbanLane"
@@ -47,6 +47,7 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged, f
   const [selectedCard, setSelectedCard] = useState<CardDetail | null>(null)
   const [cardModalOpen, setCardModalOpen] = useState(false)
   const [addingLane, setAddingLane] = useState(false)
+  const [addingLaneLoading, setAddingLaneLoading] = useState(false)
   const [newLaneName, setNewLaneName] = useState("")
   const addLaneInputRef = useRef<HTMLInputElement>(null)
 
@@ -221,6 +222,7 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged, f
 
   async function handleAddLane() {
     if (!newLaneName.trim()) return
+    setAddingLaneLoading(true)
     try {
       const res = await fetch("/api/trello/pipelines", {
         method: "POST",
@@ -233,6 +235,8 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged, f
       onBoardChanged(true)
     } catch {
       toast.error("Failed to add pipeline")
+    } finally {
+      setAddingLaneLoading(false)
     }
   }
 
@@ -324,19 +328,27 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged, f
                   onChange={(e) => setNewLaneName(e.target.value)}
                   placeholder="Pipeline name"
                   className="h-8 text-sm"
+                  disabled={addingLaneLoading}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddLane()
-                    if (e.key === "Escape") { setAddingLane(false); setNewLaneName("") }
+                    if (e.key === "Escape" && !addingLaneLoading) { setAddingLane(false); setNewLaneName("") }
                   }}
                 />
                 <div className="flex gap-1.5">
-                  <Button size="sm" className="h-7 text-xs" onClick={handleAddLane} disabled={!newLaneName.trim()}>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    onClick={handleAddLane}
+                    disabled={!newLaneName.trim() || addingLaneLoading}
+                  >
+                    {addingLaneLoading && <Loader2Icon className="size-3 animate-spin" />}
                     Add
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     className="h-7 text-xs"
+                    disabled={addingLaneLoading}
                     onClick={() => { setAddingLane(false); setNewLaneName("") }}
                   >
                     Cancel
