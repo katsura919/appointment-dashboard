@@ -3,10 +3,21 @@ import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import TrelloPipeline from "@/models/TrelloPipeline"
 import { requireWorkspaceAccess, workspaceErrorResponse } from "@/lib/workspace-utils"
+import { invalidateKeys, CacheKeys } from "@/lib/cache"
 
 const ReorderSchema = z.object({
-  position: z.number().int().min(0),
+  position: z.number().int().min(0), // target array index
 })
+
+/** Renumber all pipelines in a project with clean integer positions */
+async function renumberPipelines(projectId: string) {
+  const pipelines = await TrelloPipeline.find({ projectId, archivedAt: null })
+    .sort({ position: 1 })
+    .select("_id")
+  await Promise.all(
+    pipelines.map((p, i) => TrelloPipeline.updateOne({ _id: p._id }, { position: i }))
+  )
+}
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,26 +35,50 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return Response.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 })
     }
 
-    const oldPosition = pipeline.position
-    const newPosition = parsed.data.position
+    const toIndex = parsed.data.position
 
-    if (oldPosition === newPosition) return Response.json({ pipeline })
+    // Fetch siblings (excluding the pipeline being moved)
+    const siblings = await TrelloPipeline.find({
+      projectId: pipeline.projectId,
+      _id: { $ne: id },
+      archivedAt: null,
+    })
+      .sort({ position: 1 })
+      .select("_id position")
 
-    // Shift other pipelines to make room
-    if (newPosition > oldPosition) {
-      await TrelloPipeline.updateMany(
-        { projectId: pipeline.projectId, position: { $gt: oldPosition, $lte: newPosition } },
-        { $inc: { position: -1 } }
-      )
+    const prev = siblings[toIndex - 1]
+    const next = siblings[toIndex]
+
+    let newPosition: number
+    if (!prev && !next) {
+      newPosition = 0
+    } else if (!prev) {
+      newPosition = next.position - 1
+    } else if (!next) {
+      newPosition = prev.position + 1
     } else {
-      await TrelloPipeline.updateMany(
-        { projectId: pipeline.projectId, position: { $gte: newPosition, $lt: oldPosition } },
-        { $inc: { position: 1 } }
-      )
+      newPosition = (prev.position + next.position) / 2
+      if (Math.abs(next.position - prev.position) < 0.001) {
+        await renumberPipelines(pipeline.projectId.toString())
+        const refreshed = await TrelloPipeline.find({
+          projectId: pipeline.projectId,
+          _id: { $ne: id },
+          archivedAt: null,
+        })
+          .sort({ position: 1 })
+          .select("position")
+        const rPrev = refreshed[toIndex - 1]
+        const rNext = refreshed[toIndex]
+        newPosition = rPrev && rNext
+          ? (rPrev.position + rNext.position) / 2
+          : rPrev ? rPrev.position + 1 : rNext ? rNext.position - 1 : 0
+      }
     }
 
     pipeline.position = newPosition
     await pipeline.save()
+
+    await invalidateKeys(CacheKeys.trelloBoard(pipeline.projectId.toString()))
 
     return Response.json({ pipeline })
   } catch (error) {

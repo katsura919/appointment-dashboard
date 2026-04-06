@@ -29,6 +29,8 @@ export function toLanes(data: BoardApiResponse): KanbanLane[] {
       dueDate: card.dueDate ? new Date(card.dueDate).toISOString() : undefined,
       checklist: card.checklist,
       assigneeIds: card.assigneeIds,
+      priority: card.priority,
+      coverColor: card.coverColor,
       pipelineId,
       projectId: card.projectId.toString(),
       workspaceId: card.workspaceId.toString(),
@@ -40,6 +42,7 @@ export function toLanes(data: BoardApiResponse): KanbanLane[] {
     id: pipeline._id.toString(),
     title: pipeline.name,
     color: pipeline.color,
+    wipLimit: pipeline.wipLimit,
     cards: cardsByPipeline.get(pipeline._id.toString()) ?? [],
   }))
 }

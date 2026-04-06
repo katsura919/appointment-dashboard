@@ -15,6 +15,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { KanbanCard } from "@/components/trello/KanbanCard"
 import type { KanbanLane as KanbanLaneType, KanbanCard as KanbanCardType } from "@/store/trello-store"
 
@@ -25,6 +35,9 @@ interface Props {
   onCardAdded: () => void
   onLaneDeleted: () => void
   onLaneRenamed: (newName: string) => void
+  onLaneUpdated: () => void
+  /** Filtered subset of lane.cards for display. DnD context still uses lane.cards. */
+  displayCards?: KanbanCardType[]
 }
 
 export function KanbanLane({
@@ -34,11 +47,17 @@ export function KanbanLane({
   onCardAdded,
   onLaneDeleted,
   onLaneRenamed,
+  onLaneUpdated,
+  displayCards,
 }: Props) {
+  const visibleCards = displayCards ?? lane.cards
   const [addingCard, setAddingCard] = useState(false)
   const [newCardTitle, setNewCardTitle] = useState("")
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(lane.title)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [settingWip, setSettingWip] = useState(false)
+  const [wipValue, setWipValue] = useState(lane.wipLimit?.toString() ?? "")
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Lane itself is sortable (for column reordering)
@@ -113,7 +132,26 @@ export function KanbanLane({
     }
   }
 
+  async function handleSetWipLimit() {
+    const parsed = wipValue === "" ? null : parseInt(wipValue, 10)
+    if (wipValue !== "" && (isNaN(parsed!) || parsed! < 1)) return
+    try {
+      const res = await fetch(`/api/trello/pipelines/${lane.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-workspace-id": workspaceId },
+        body: JSON.stringify({ wipLimit: parsed }),
+      })
+      if (!res.ok) throw new Error()
+      onLaneUpdated()
+    } catch {
+      toast.error("Failed to update WIP limit")
+    } finally {
+      setSettingWip(false)
+    }
+  }
+
   const cardIds = lane.cards.map((c) => c.id)
+  const isAtWipLimit = lane.wipLimit != null && lane.cards.length >= lane.wipLimit
 
   return (
     <div
@@ -156,7 +194,18 @@ export function KanbanLane({
           </span>
         )}
 
-        <span className="text-xs text-muted-foreground tabular-nums">{lane.cards.length}</span>
+        <span
+          className={`text-xs tabular-nums font-medium ${
+            isAtWipLimit ? "text-destructive" : "text-muted-foreground"
+          }`}
+          title={lane.wipLimit ? `WIP limit: ${lane.wipLimit}` : undefined}
+        >
+          {visibleCards.length !== lane.cards.length
+            ? `${visibleCards.length}/${lane.cards.length}`
+            : lane.wipLimit
+            ? `${lane.cards.length}/${lane.wipLimit}`
+            : lane.cards.length}
+        </span>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -164,14 +213,18 @@ export function KanbanLane({
               <MoreHorizontalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem onClick={() => setRenaming(true)}>
               <PencilIcon className="size-3.5 mr-2" />
               Rename
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setSettingWip(true); setWipValue(lane.wipLimit?.toString() ?? "") }}>
+              <span className="size-3.5 mr-2 inline-flex items-center justify-center text-[10px] font-bold">WIP</span>
+              Set WIP limit
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={handleDeleteLane}
+              onClick={() => setConfirmDeleteOpen(true)}
             >
               <Trash2Icon className="size-3.5 mr-2" />
               Delete
@@ -183,7 +236,7 @@ export function KanbanLane({
       {/* Cards */}
       <div ref={setDropRef} className="flex flex-col gap-2 p-2 flex-1 min-h-[4rem] overflow-y-auto max-h-[calc(100vh-18rem)]">
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-          {lane.cards.map((card) => (
+          {visibleCards.map((card) => (
             <KanbanCard key={card.id} card={card} onClick={onCardClick} />
           ))}
         </SortableContext>
@@ -232,6 +285,59 @@ export function KanbanLane({
           </Button>
         </div>
       )}
+
+      {/* WIP limit input */}
+      {settingWip && (
+        <div className="px-2 pb-2 flex gap-1.5 items-center">
+          <Input
+            type="number"
+            min={1}
+            value={wipValue}
+            onChange={(e) => setWipValue(e.target.value)}
+            placeholder="Limit (blank = none)"
+            className="h-7 text-xs flex-1"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSetWipLimit()
+              if (e.key === "Escape") setSettingWip(false)
+            }}
+            autoFocus
+          />
+          <Button size="sm" className="h-7 text-xs px-2" onClick={handleSetWipLimit}>
+            Set
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setSettingWip(false)}>
+            Cancel
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete pipeline?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive <strong>{lane.title}</strong> and all{" "}
+              {lane.cards.length > 0 ? (
+                <>
+                  <strong>{lane.cards.length}</strong> card{lane.cards.length !== 1 ? "s" : ""} inside it.
+                </>
+              ) : (
+                "cards inside it."
+              )}{" "}
+              This action cannot be undone from the board.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDeleteLane}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -24,14 +24,22 @@ import { CardDetailModal, type CardDetail } from "@/components/trello/CardDetail
 import { useTrelloStore, type KanbanCard as KanbanCardType, type KanbanLane as KanbanLaneType } from "@/store/trello-store"
 import { toLanes, type BoardApiResponse } from "@/lib/trello/boardTransformer"
 
+export interface BoardFilters {
+  priority: string
+  activeLabels: string[]
+  activeAssignees: string[]
+  dueSoon: boolean
+}
+
 interface Props {
   projectId: string
   workspaceId: string
   apiData: BoardApiResponse
   onBoardChanged: (silent?: boolean) => void
+  filters?: BoardFilters
 }
 
-export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }: Props) {
+export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged, filters }: Props) {
   const { lanes, setLanes, moveCard, moveLane } = useTrelloStore()
 
   const [activeCard, setActiveCard] = useState<KanbanCardType | null>(null)
@@ -137,11 +145,17 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
 
     // ── Lane reorder ──────────────────────────────────────────────────────────
     if (activeData?.type === "lane") {
-      // active.id === over.id means dropped back on itself — no change
-      if (active.id === over.id) return
+      // Resolve the target lane id — over.id may be "droppable-{laneId}" when
+      // the drag ends over the cards body area instead of the lane header.
+      const rawOverId = over.id.toString()
+      const overLaneId = rawOverId.startsWith("droppable-")
+        ? rawOverId.replace("droppable-", "")
+        : rawOverId
+
+      if (active.id === overLaneId) return
 
       const fromIdx = current.findIndex((l) => l.id === active.id)
-      const toIdx = current.findIndex((l) => l.id === over.id)
+      const toIdx = current.findIndex((l) => l.id === overLaneId)
       if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
 
       moveLane(fromIdx, toIdx)
@@ -233,6 +247,8 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
       labels: card.labels,
       checklist: card.checklist,
       assigneeIds: card.assigneeIds,
+      priority: card.priority,
+      coverColor: card.coverColor,
       pipelineId: card.pipelineId,
       workspaceId: card.workspaceId,
     })
@@ -247,6 +263,30 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
 
   const laneIds = lanes.map((l) => l.id)
 
+  // Derive filtered card lists (client-side; DnD still uses full lane.cards)
+  const filteredLanes = filters
+    ? lanes.map((lane) => ({
+        ...lane,
+        displayCards: lane.cards.filter((card) => {
+          if (filters.priority && card.priority !== filters.priority) return false
+          if (filters.dueSoon && (!card.dueDate || new Date(card.dueDate) >= new Date())) return false
+          if (
+            filters.activeLabels.length > 0 &&
+            !filters.activeLabels.some((lbl) => card.labels?.some((l) => l.text === lbl))
+          )
+            return false
+          if (
+            filters.activeAssignees.length > 0 &&
+            !filters.activeAssignees.some((id) =>
+              card.assigneeIds?.some((a) => a._id === id)
+            )
+          )
+            return false
+          return true
+        }),
+      }))
+    : lanes.map((lane) => ({ ...lane, displayCards: lane.cards }))
+
   return (
     <>
       <DndContext
@@ -259,15 +299,17 @@ export function TrelloBoard({ projectId, workspaceId, apiData, onBoardChanged }:
       >
         <div className="flex gap-3 overflow-x-auto pb-4 items-start">
           <SortableContext items={laneIds} strategy={horizontalListSortingStrategy}>
-            {lanes.map((lane) => (
+            {filteredLanes.map((lane) => (
               <KanbanLane
                 key={lane.id}
                 lane={lane}
+                displayCards={lane.displayCards}
                 workspaceId={workspaceId}
                 onCardClick={handleCardClick}
                 onCardAdded={() => onBoardChanged(true)}
                 onLaneDeleted={() => onBoardChanged(true)}
                 onLaneRenamed={(name) => handleLaneRenamed(lane.id, name)}
+                onLaneUpdated={() => onBoardChanged(true)}
               />
             ))}
           </SortableContext>

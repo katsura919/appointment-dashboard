@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
 
 import { toast } from "sonner"
 import { PlusIcon } from "lucide-react"
@@ -34,13 +34,34 @@ interface Props {
   onOpenChange: (open: boolean) => void
   workspaceId: string
   onSuccess: () => void
+  /** When provided, the dialog operates in edit mode */
+  editProjectId?: string
+  initialValues?: { name: string; description?: string; color?: string }
 }
 
-export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }: Props) {
+export function NewProjectDialog({
+  open,
+  onOpenChange,
+  workspaceId,
+  onSuccess,
+  editProjectId,
+  initialValues,
+}: Props) {
+  const isEdit = Boolean(editProjectId)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [color, setColor] = useState(PRESET_COLORS[0])
   const [loading, setLoading] = useState(false)
+
+  // Sync values when the dialog opens (handles both create and edit)
+  useEffect(() => {
+    if (open) {
+      setName(initialValues?.name ?? "")
+      setDescription(initialValues?.description ?? "")
+      setColor(initialValues?.color ?? PRESET_COLORS[0])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   function reset() {
     setName("")
@@ -54,23 +75,26 @@ export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }:
 
     setLoading(true)
     try {
-      const res = await fetch("/api/trello/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-workspace-id": workspaceId,
-        },
-        body: JSON.stringify({ name, description, color }),
-      })
+      const res = await fetch(
+        isEdit ? `/api/trello/projects/${editProjectId}` : "/api/trello/projects",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-workspace-id": workspaceId,
+          },
+          body: JSON.stringify({ name, description, color }),
+        }
+      )
 
-      if (!res.ok) throw new Error("Failed to create project")
+      if (!res.ok) throw new Error()
 
-      toast.success("Project created")
-      reset()
+      toast.success(isEdit ? "Project updated" : "Project created")
+      if (!isEdit) reset()
       onOpenChange(false)
       onSuccess()
     } catch {
-      toast.error("Failed to create project")
+      toast.error(isEdit ? "Failed to update project" : "Failed to create project")
     } finally {
       setLoading(false)
     }
@@ -80,7 +104,7 @@ export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New Project</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Project" : "New Project"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -130,8 +154,8 @@ export function NewProjectDialog({ open, onOpenChange, workspaceId, onSuccess }:
               Cancel
             </Button>
             <Button type="submit" disabled={loading || !name.trim()}>
-              <PlusIcon className="size-4" />
-              Create Project
+              {!isEdit && <PlusIcon className="size-4" />}
+              {isEdit ? "Save Changes" : "Create Project"}
             </Button>
           </DialogFooter>
         </form>

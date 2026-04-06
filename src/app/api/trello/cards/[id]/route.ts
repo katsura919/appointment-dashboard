@@ -22,6 +22,9 @@ const UpdateCardSchema = z.object({
   labels: z.array(LabelSchema).optional(),
   dueDate: z.string().datetime().nullable().optional(),
   checklist: z.array(ChecklistItemSchema).optional(),
+  priority: z.enum(["urgent", "high", "medium", "low"]).optional(),
+  coverColor: z.string().nullable().optional(),
+  restore: z.boolean().optional(),
 })
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -40,7 +43,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return Response.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 })
     }
 
-    Object.assign(card, parsed.data)
+    const { restore, ...rest } = parsed.data
+    if (restore) {
+      card.archivedAt = undefined
+    } else {
+      Object.assign(card, rest)
+    }
     await card.save()
     await card.populate("assigneeIds", "name email")
 

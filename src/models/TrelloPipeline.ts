@@ -6,6 +6,7 @@ export interface ITrelloPipeline extends Document {
   name: string
   position: number
   color?: string
+  wipLimit?: number
   archivedAt?: Date
   createdAt: Date
   updatedAt: Date
@@ -18,6 +19,7 @@ const TrelloPipelineSchema = new Schema<ITrelloPipeline>(
     name: { type: String, required: true, trim: true },
     position: { type: Number, required: true, default: 0 },
     color: { type: String },
+    wipLimit: { type: Number, min: 1 },
     archivedAt: { type: Date },
   },
   { timestamps: true }

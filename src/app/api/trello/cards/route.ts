@@ -24,6 +24,7 @@ const CreateCardSchema = z.object({
   labels: z.array(LabelSchema).optional(),
   dueDate: z.string().datetime().optional(),
   checklist: z.array(ChecklistItemSchema).optional(),
+  priority: z.enum(["urgent", "high", "medium", "low"]).optional(),
 })
 
 export async function POST(request: NextRequest) {

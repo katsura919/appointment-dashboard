@@ -12,12 +12,23 @@ import {
   PlusIcon,
   AlignLeftIcon,
   Loader2Icon,
+  UsersIcon,
+  CheckIcon,
+  FlagIcon,
+  SwatchBookIcon,
 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,6 +54,8 @@ export interface CardDetail {
   labels?: { text: string; color: string }[]
   checklist?: { text: string; checked: boolean }[]
   assigneeIds?: { _id: string; name: string; email: string }[]
+  priority?: string
+  coverColor?: string
   pipelineId: string
   workspaceId: string
 }
@@ -55,12 +68,23 @@ interface Props {
   onDeleted: () => void
 }
 
+interface WorkspaceMember {
+  userId: string
+  name: string
+  email: string
+  role: string
+}
+
 export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted }: Props) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [dueDate, setDueDate] = useState("")
   const [labels, setLabels] = useState<{ text: string; color: string }[]>([])
   const [checklist, setChecklist] = useState<{ text: string; checked: boolean }[]>([])
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([])
+  const [priority, setPriority] = useState<string>("")
+  const [coverColor, setCoverColor] = useState<string>("")
+  const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [newLabelText, setNewLabelText] = useState("")
   const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0].color)
@@ -74,8 +98,20 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
       setDueDate(card.dueDate ? format(new Date(card.dueDate), "yyyy-MM-dd") : "")
       setLabels(card.labels ?? [])
       setChecklist(card.checklist ?? [])
+      setAssigneeIds(card.assigneeIds?.map((a) => a._id) ?? [])
+      setPriority(card.priority ?? "")
+      setCoverColor(card.coverColor ?? "")
     }
   }, [card])
+
+  // Fetch workspace members when modal opens
+  useEffect(() => {
+    if (!open || !card) return
+    fetch(`/api/workspaces/${card.workspaceId}/members`)
+      .then((r) => r.json())
+      .then((data) => setWorkspaceMembers(data.members ?? []))
+      .catch(() => {})
+  }, [open, card])
 
   if (!card) return null
 
@@ -95,6 +131,9 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
           labels,
           checklist,
+          assigneeIds,
+          ...(priority ? { priority } : {}),
+          coverColor: coverColor || null,
         }),
       })
       if (!res.ok) throw new Error()
@@ -269,6 +308,62 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
 
           {/* Sidebar */}
           <div className="w-52 shrink-0 border-l bg-muted/20 px-4 py-5 space-y-5">
+            {/* Priority */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <FlagIcon className="size-3.5" />
+                Priority
+              </Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="No priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgent">🔴 Urgent</SelectItem>
+                  <SelectItem value="high">🟠 High</SelectItem>
+                  <SelectItem value="medium">🟡 Medium</SelectItem>
+                  <SelectItem value="low">⚪ Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Members */}
+            {workspaceMembers.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <UsersIcon className="size-3.5" />
+                  Members
+                </Label>
+                <div className="space-y-1">
+                  {workspaceMembers.map((m) => {
+                    const selected = assigneeIds.includes(m.userId)
+                    return (
+                      <button
+                        key={m.userId}
+                        type="button"
+                        onClick={() =>
+                          setAssigneeIds((prev) =>
+                            selected ? prev.filter((id) => id !== m.userId) : [...prev, m.userId]
+                          )
+                        }
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded-md text-left transition-colors text-sm ${
+                          selected
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-muted text-foreground"
+                        }`}
+                      >
+                        <span className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-semibold uppercase shrink-0">
+                          {m.name[0]}
+                        </span>
+                        <span className="flex-1 truncate text-xs">{m.name}</span>
+                        {selected && <CheckIcon className="size-3 shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Due Date */}
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -342,6 +437,44 @@ export function CardDetailModal({ card, open, onOpenChange, onUpdated, onDeleted
                 <PlusIcon className="size-3" />
                 Add label
               </Button>
+            </div>
+
+            {/* Cover Color */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <SwatchBookIcon className="size-3.5" />
+                Cover
+              </Label>
+              <div className="flex items-center gap-1 flex-wrap">
+                {LABEL_COLORS.map(({ color }) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setCoverColor(coverColor === color ? "" : color)}
+                    className="size-5 rounded border-2 transition-transform hover:scale-110 cursor-pointer"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: coverColor === color ? "white" : "transparent",
+                      outline: coverColor === color ? `2px solid ${color}` : "none",
+                    }}
+                  />
+                ))}
+                {coverColor && (
+                  <button
+                    type="button"
+                    onClick={() => setCoverColor("")}
+                    className="text-[10px] text-muted-foreground hover:text-foreground px-1"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {coverColor && (
+                <div
+                  className="h-6 w-full rounded"
+                  style={{ backgroundColor: coverColor }}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -10,6 +10,8 @@ export interface ITrelloCardChecklistItem {
   checked: boolean
 }
 
+export type TrelloCardPriority = "urgent" | "high" | "medium" | "low"
+
 export interface ITrelloCard extends Document {
   pipelineId: mongoose.Types.ObjectId | string
   projectId: mongoose.Types.ObjectId | string
@@ -21,6 +23,8 @@ export interface ITrelloCard extends Document {
   labels: ITrelloCardLabel[]
   dueDate?: Date
   checklist: ITrelloCardChecklistItem[]
+  priority?: TrelloCardPriority
+  coverColor?: string
   archivedAt?: Date
   createdBy: mongoose.Types.ObjectId | string
   createdAt: Date
@@ -43,6 +47,8 @@ const TrelloCardSchema = new Schema<ITrelloCard>(
       },
     ],
     dueDate: { type: Date },
+    priority: { type: String, enum: ["urgent", "high", "medium", "low"] },
+    coverColor: { type: String },
     checklist: [
       {
         text: { type: String, required: true, trim: true },

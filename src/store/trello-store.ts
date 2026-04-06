@@ -16,6 +16,8 @@ export interface KanbanAssignee {
   email: string
 }
 
+export type CardPriority = "urgent" | "high" | "medium" | "low"
+
 export interface KanbanCard {
   id: string
   title: string
@@ -24,6 +26,8 @@ export interface KanbanCard {
   dueDate?: string
   checklist?: KanbanChecklistItem[]
   assigneeIds?: KanbanAssignee[]
+  priority?: CardPriority
+  coverColor?: string
   pipelineId: string
   projectId: string
   workspaceId: string
@@ -34,6 +38,7 @@ export interface KanbanLane {
   id: string
   title: string
   color?: string
+  wipLimit?: number
   cards: KanbanCard[]
 }
 

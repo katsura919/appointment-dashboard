@@ -9,6 +9,8 @@ import { invalidateKeys, CacheKeys } from "@/lib/cache"
 const UpdatePipelineSchema = z.object({
   name: z.string().min(1).trim().optional(),
   color: z.string().optional(),
+  wipLimit: z.number().int().min(1).nullable().optional(),
+  restore: z.boolean().optional(),
 })
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +29,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return Response.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 })
     }
 
-    Object.assign(pipeline, parsed.data)
+    const { restore, ...rest } = parsed.data
+    if (restore) {
+      pipeline.archivedAt = undefined
+    } else {
+      Object.assign(pipeline, rest)
+    }
     await pipeline.save()
 
     await invalidateKeys(CacheKeys.trelloBoard(pipeline.projectId.toString()))
