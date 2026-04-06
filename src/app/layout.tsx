@@ -1,7 +1,7 @@
 // For adding custom fonts with other frameworks, see:
 // https://tailwindcss.com/docs/font-family
 import type { Metadata } from "next";
-import { DM_Sans, Lora, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Fraunces, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,21 +10,20 @@ import { GoogleValidator } from "@/components/google-validator";
 import { WorkspaceProvider } from "@/contexts/workspace-context";
 import { Toaster } from "sonner";
 
-const fontSans = DM_Sans({
+const fontSans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-const fontSerif = Lora({
+const fontSerif = Fraunces({
   subsets: ["latin"],
   variable: "--font-serif",
   weight: ["400", "500", "600", "700"],
 });
 
-const fontMono = IBM_Plex_Mono({
+const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
 });
 
 
