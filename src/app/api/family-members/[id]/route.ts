@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb"
 import FamilyMember from "@/models/FamilyMember"
 import { auth } from "@/auth"
 import { requireWorkspaceAccess } from "@/lib/workspace-utils"
+import { invalidateKeys, invalidatePattern, CacheKeys } from "@/lib/cache"
 const UpdateFamilyMemberSchema = z.object({
   name: z.string().min(1).trim().optional(),
   role: z.enum(["mom", "dad", "child", "other"]).optional(),
@@ -70,6 +71,14 @@ export async function PUT(
       return Response.json({ error: "Family member not found" }, { status: 404 })
     }
 
+    await Promise.all([
+      invalidateKeys(
+        CacheKeys.familyMembers(workspaceId),
+        CacheKeys.dashboardOverview(workspaceId)
+      ),
+      invalidatePattern(CacheKeys.appointmentsPattern(workspaceId)),
+    ])
+
     return Response.json({ member }, { status: 200 })
   } catch (error) {
     console.error(`[FamilyMember PUT id=${id}] Error:`, error)
@@ -92,6 +101,14 @@ export async function DELETE(
     if (!member) {
       return Response.json({ error: "Family member not found" }, { status: 404 })
     }
+
+    await Promise.all([
+      invalidateKeys(
+        CacheKeys.familyMembers(workspaceId),
+        CacheKeys.dashboardOverview(workspaceId)
+      ),
+      invalidatePattern(CacheKeys.appointmentsPattern(workspaceId)),
+    ])
 
     return Response.json({ message: "Family member deleted" }, { status: 200 })
   } catch (error) {

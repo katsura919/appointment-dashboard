@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb"
 import TrelloPipeline from "@/models/TrelloPipeline"
 import TrelloCard from "@/models/TrelloCard"
 import { requireWorkspaceAccess, canAdminister, workspaceErrorResponse } from "@/lib/workspace-utils"
+import { invalidateKeys, CacheKeys } from "@/lib/cache"
 
 const UpdatePipelineSchema = z.object({
   name: z.string().min(1).trim().optional(),
@@ -29,6 +30,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     Object.assign(pipeline, parsed.data)
     await pipeline.save()
 
+    await invalidateKeys(CacheKeys.trelloBoard(pipeline.projectId.toString()))
+
     return Response.json({ pipeline })
   } catch (error) {
     return workspaceErrorResponse(error)
@@ -50,9 +53,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Archive pipeline and all its cards
     const now = new Date()
+    const projectId = pipeline.projectId.toString()
+    const workspaceId = pipeline.workspaceId.toString()
     pipeline.archivedAt = now
     await pipeline.save()
     await TrelloCard.updateMany({ pipelineId: id }, { archivedAt: now })
+
+    await invalidateKeys(
+      CacheKeys.trelloBoard(projectId),
+      CacheKeys.dashboardOverview(workspaceId)
+    )
 
     return Response.json({ success: true })
   } catch (error) {

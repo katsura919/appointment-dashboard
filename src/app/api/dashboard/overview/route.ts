@@ -6,6 +6,7 @@ import FamilyMember from "@/models/FamilyMember"
 import WellBeingLog from "@/models/WellBeingLog"
 import TrelloProject from "@/models/TrelloProject"
 import TrelloCard from "@/models/TrelloCard"
+import { withCache, CacheKeys, CacheTTL } from "@/lib/cache"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +17,11 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Missing workspace context" }, { status: 400 })
 
     const { workspace } = await requireWorkspaceAccess(workspaceId)
+
+    const data = await withCache(
+      CacheKeys.dashboardOverview(workspaceId),
+      CacheTTL.dashboardOverview,
+      async () => {
     await connectDB()
 
     const wid = workspace._id
@@ -157,7 +163,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return Response.json({
+    return {
       appointments: {
         todayCount: todayAppointments,
         thisWeekCount: thisWeekAppointments,
@@ -178,7 +184,10 @@ export async function GET(request: NextRequest) {
         dueSoonCount,
         top3Projects,
       },
-    })
+    }
+  })
+
+    return Response.json(data)
   } catch (error) {
     return workspaceErrorResponse(error)
   }

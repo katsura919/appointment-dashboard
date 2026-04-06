@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb"
 import TrelloPipeline from "@/models/TrelloPipeline"
 import TrelloCard from "@/models/TrelloCard"
 import { requireWorkspaceAccess, workspaceErrorResponse } from "@/lib/workspace-utils"
+import { invalidateKeys, CacheKeys } from "@/lib/cache"
 
 const LabelSchema = z.object({
   text: z.string().trim(),
@@ -57,6 +58,11 @@ export async function POST(request: NextRequest) {
       position,
       createdBy: userId,
     })
+
+    await invalidateKeys(
+      CacheKeys.trelloBoard(pipeline.projectId.toString()),
+      CacheKeys.dashboardOverview(workspaceId)
+    )
 
     return Response.json({ card }, { status: 201 })
   } catch (error) {

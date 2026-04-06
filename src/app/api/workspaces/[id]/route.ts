@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireWorkspaceAccess, canAdminister, isOwner, workspaceErrorResponse } from "@/lib/workspace-utils";
 import { connectDB } from "@/lib/mongodb";
 import Workspace from "@/models/Workspace";
+import { invalidateKeys, CacheKeys } from "@/lib/cache";
 
 const UpdateWorkspaceSchema = z.object({
   name: z.string().min(1).max(80).trim().optional(),
@@ -16,7 +17,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   try {
-    const { workspace, member } = await requireWorkspaceAccess(id);
+    const { workspace, member, userId } = await requireWorkspaceAccess(id);
 
     if (!canAdminister(member)) {
       return Response.json({ error: "Forbidden: Only owner or admin can update the workspace" }, { status: 403 });
@@ -38,6 +39,8 @@ export async function PATCH(
       { new: true }
     );
 
+    await invalidateKeys(CacheKeys.workspaces(userId))
+
     return Response.json({ workspace: updated }, { status: 200 });
   } catch (error) {
     return workspaceErrorResponse(error);
@@ -51,7 +54,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const { workspace, member } = await requireWorkspaceAccess(id);
+    const { workspace, member, userId } = await requireWorkspaceAccess(id);
 
     if (!isOwner(member)) {
       return Response.json({ error: "Forbidden: Only the workspace owner can delete it" }, { status: 403 });
@@ -70,6 +73,8 @@ export async function DELETE(
 
     await connectDB();
     await workspace.deleteOne();
+
+    await invalidateKeys(CacheKeys.workspaces(userId))
 
     return Response.json({ message: "Workspace deleted successfully" }, { status: 200 });
   } catch (error) {

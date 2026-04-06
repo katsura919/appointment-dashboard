@@ -6,6 +6,7 @@ import FamilyMember from "@/models/FamilyMember";
 import User from "@/models/User";
 import { auth } from "@/auth";
 import { requireWorkspaceAccess } from "@/lib/workspace-utils";
+import { withCache, invalidateKeys, invalidatePattern, CacheKeys, CacheTTL, hashFilters } from "@/lib/cache";
 
 const CATEGORIES = [
   "health_wellness",
@@ -94,12 +95,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    await connectDB();
+    const filterHash = hashFilters({
+      category: searchParams.get("category"),
+      memberId: searchParams.get("memberId"),
+      memberIds: searchParams.get("memberIds"),
+      status: searchParams.get("status"),
+      startDate: searchParams.get("startDate"),
+      endDate: searchParams.get("endDate"),
+    })
 
-    const appointments = await Appointment.find(filter)
-      .populate("memberIds", "name role avatar color")
-      .populate("memberId", "name role avatar")
-      .sort({ startsAt: 1, date: 1 });
+    const appointments = await withCache(
+      CacheKeys.appointments(workspaceId, filterHash),
+      CacheTTL.appointments,
+      async () => {
+        await connectDB();
+        return Appointment.find(filter)
+          .populate("memberIds", "name role avatar color")
+          .populate("memberId", "name role avatar")
+          .sort({ startsAt: 1, date: 1 });
+      }
+    )
 
     return Response.json({ appointments }, { status: 200 });
     } catch (error) {
@@ -145,6 +160,11 @@ export async function POST(request: NextRequest) {
     });
     
     await appointment.populate("memberIds", "name role avatar color");
+
+    await Promise.all([
+      invalidatePattern(CacheKeys.appointmentsPattern(workspaceId)),
+      invalidateKeys(CacheKeys.dashboardOverview(workspaceId)),
+    ])
 
     return Response.json({ appointment }, { status: 201 });
   } catch (error) {

@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb"
 import TrelloProject from "@/models/TrelloProject"
 import TrelloPipeline from "@/models/TrelloPipeline"
 import { requireWorkspaceAccess, workspaceErrorResponse } from "@/lib/workspace-utils"
+import { invalidateKeys, CacheKeys } from "@/lib/cache"
 
 const CreatePipelineSchema = z.object({
   projectId: z.string().min(1),
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
       workspaceId,
       position,
     })
+
+    await invalidateKeys(
+      CacheKeys.trelloBoard(parsed.data.projectId),
+      CacheKeys.dashboardOverview(workspaceId)
+    )
 
     return Response.json({ pipeline }, { status: 201 })
   } catch (error) {

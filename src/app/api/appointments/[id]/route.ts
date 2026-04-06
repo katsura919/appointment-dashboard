@@ -6,6 +6,7 @@ import FamilyMember from "@/models/FamilyMember"
 import User from "@/models/User"
 import { auth } from "@/auth"
 import { requireWorkspaceAccess } from "@/lib/workspace-utils"
+import { invalidateKeys, invalidatePattern, CacheKeys } from "@/lib/cache"
 
 const CATEGORIES = [
   "health_wellness",
@@ -100,6 +101,11 @@ export async function PUT(
 
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
 
+    await Promise.all([
+      invalidatePattern(CacheKeys.appointmentsPattern(workspaceId)),
+      invalidateKeys(CacheKeys.dashboardOverview(workspaceId)),
+    ])
+
     return Response.json({ appointment }, { status: 200 })
   } catch (error) {
     console.error(`[Appointments PUT id=${id}] Error:`, error)
@@ -120,6 +126,11 @@ export async function DELETE(
 
     const appointment = await Appointment.findOneAndDelete({ _id: id, workspaceId: workspace._id })
     if (!appointment) return Response.json({ error: "Appointment not found" }, { status: 404 })
+
+    await Promise.all([
+      invalidatePattern(CacheKeys.appointmentsPattern(workspaceId)),
+      invalidateKeys(CacheKeys.dashboardOverview(workspaceId)),
+    ])
 
     return Response.json({ message: "Appointment deleted" }, { status: 200 })
   } catch (error) {

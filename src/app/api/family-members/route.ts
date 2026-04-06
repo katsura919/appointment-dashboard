@@ -3,6 +3,7 @@ import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import FamilyMember from "@/models/FamilyMember"
 import { requireWorkspaceAccess } from "@/lib/workspace-utils"
+import { withCache, invalidateKeys, CacheKeys, CacheTTL } from "@/lib/cache"
 
 const CreateFamilyMemberSchema = z.object({
   name: z.string().min(1).trim(),
@@ -20,7 +21,14 @@ export async function GET(request: NextRequest) {
 
     const { workspace } = await requireWorkspaceAccess(workspaceId);
 
-    const members = await FamilyMember.find({ workspaceId: workspace._id }).sort({ createdAt: 1 })
+    const members = await withCache(
+      CacheKeys.familyMembers(workspaceId),
+      CacheTTL.familyMembers,
+      async () => {
+        await connectDB()
+        return FamilyMember.find({ workspaceId: workspace._id }).sort({ createdAt: 1 })
+      }
+    )
 
     return Response.json({ members }, { status: 200 })
   } catch (error) {
@@ -46,10 +54,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    await connectDB()
     const member = await FamilyMember.create({
         ...parsed.data,
         workspaceId: workspace._id
     })
+
+    await invalidateKeys(
+      CacheKeys.familyMembers(workspaceId),
+      CacheKeys.dashboardOverview(workspaceId)
+    )
 
     return Response.json({ member }, { status: 201 })
   } catch (error) {

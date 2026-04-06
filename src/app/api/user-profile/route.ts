@@ -3,6 +3,7 @@ import { z } from "zod"
 import { connectDB } from "@/lib/mongodb"
 import UserProfile from "@/models/UserProfile"
 import { getServerUserId } from "@/lib/server-auth"
+import { withCache, invalidateKeys, CacheKeys, CacheTTL } from "@/lib/cache"
 
 const UpsertProfileSchema = z.object({
   profilePic: z.string().url().optional(),
@@ -35,9 +36,15 @@ export async function GET() {
     const userId = await getServerUserId()
     if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-    await connectDB()
+    const profile = await withCache(
+      CacheKeys.userProfile(userId),
+      CacheTTL.userProfile,
+      async () => {
+        await connectDB()
+        return UserProfile.findOne({ userId })
+      }
+    )
 
-    const profile = await UserProfile.findOne({ userId })
     return Response.json({ profile: profile ?? null }, { status: 200 })
   } catch (error) {
     console.error("[UserProfile GET] Error:", error)
@@ -63,11 +70,14 @@ export async function PUT(request: NextRequest) {
 
     await connectDB()
 
+    await connectDB()
     const profile = await UserProfile.findOneAndUpdate(
       { userId },
       { $set: parsed.data },
       { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     )
+
+    await invalidateKeys(CacheKeys.userProfile(userId))
 
     return Response.json({ profile }, { status: 200 })
   } catch (error) {

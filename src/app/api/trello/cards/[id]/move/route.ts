@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb"
 import TrelloCard from "@/models/TrelloCard"
 import TrelloPipeline from "@/models/TrelloPipeline"
 import { requireWorkspaceAccess, workspaceErrorResponse } from "@/lib/workspace-utils"
+import { invalidateKeys, CacheKeys } from "@/lib/cache"
 
 const MoveCardSchema = z.object({
   pipelineId: z.string().min(1),
@@ -64,6 +65,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     card.pipelineId = pipelineId as unknown as typeof card.pipelineId
     card.position = position
     await card.save()
+
+    await invalidateKeys(CacheKeys.trelloBoard(card.projectId.toString()))
 
     return Response.json({ card })
   } catch (error) {

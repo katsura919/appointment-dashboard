@@ -10,6 +10,7 @@ const CreateWorkspaceSchema = z.object({
 });
 
 import { getServerUserId } from "@/lib/server-auth";
+import { withCache, invalidateKeys, CacheKeys, CacheTTL } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,11 +19,14 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const workspaces = await Workspace.find({
-      "members.userId": userId,
-    });
+    const workspaces = await withCache(
+      CacheKeys.workspaces(userId),
+      CacheTTL.workspaces,
+      async () => {
+        await connectDB();
+        return Workspace.find({ "members.userId": userId });
+      }
+    );
 
     return Response.json({ workspaces }, { status: 200 });
   } catch (error) {
@@ -64,6 +68,8 @@ export async function POST(request: NextRequest) {
         },
       ],
     });
+
+    await invalidateKeys(CacheKeys.workspaces(userId))
 
     return Response.json({ workspace }, { status: 201 });
   } catch (error) {
