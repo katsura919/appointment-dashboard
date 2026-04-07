@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Read(//d/ReactJS/MINESHA/appointment-dashboard/src/app/**)"
+      "Read(//d/ReactJS/MINESHA/appointment-dashboard/src/app/**)",
+      "Bash(npm install:*)"
     ]
   }
 }

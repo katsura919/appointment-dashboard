@@ -154,14 +154,14 @@ src/components/storage/
 ## Implementation Order
 
 - [x] Write plan (`docs/storage.md`)
-- [ ] Install `cloudinary` and `react-dropzone`
+- [x] Install `cloudinary` and `react-dropzone`
 - [ ] Add env vars to `.env.local` (user provides values)
-- [ ] Create `FileAsset` Mongoose model
-- [ ] Create API routes: `sign`, `files` (GET/POST), `files/[id]` (DELETE/PATCH)
-- [ ] Create Zustand `storage-store`
-- [ ] Build `FileUploader` component (dropzone + signed upload logic)
-- [ ] Build `FileCard`, `FileGrid`, `FileList`
-- [ ] Build `FilePreviewModal`
-- [ ] Build `StorageHeader`
-- [ ] Create `/storage` page
-- [ ] Add nav link in sidebar
+- [x] Create `FileAsset` Mongoose model (`src/models/FileAsset.ts`)
+- [x] Create API routes: `sign`, `files` (GET/POST), `files/[id]` (DELETE/PATCH)
+- [x] Create Zustand `storage-store` (`src/store/storage-store.ts`)
+- [x] Build `FileUploader` component (dropzone + signed upload logic)
+- [x] Build `FileCard`, `FileGrid`, `FileList`
+- [x] Build `FilePreviewModal`
+- [x] Build `StorageHeader`
+- [x] Create `/storage` page
+- [x] Add nav link in sidebar
