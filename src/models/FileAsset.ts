@@ -10,6 +10,7 @@ export interface IFileAsset extends Document {
   size: number
   workspaceId: mongoose.Types.ObjectId | string
   uploadedBy: mongoose.Types.ObjectId | string
+  folderId?: mongoose.Types.ObjectId | string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -25,6 +26,7 @@ const FileAssetSchema = new Schema<IFileAsset>(
     size: { type: Number, required: true },
     workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", required: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    folderId: { type: Schema.Types.ObjectId, ref: "StorageFolder", default: null },
   },
   { timestamps: true }
 )

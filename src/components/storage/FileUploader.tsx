@@ -51,7 +51,7 @@ interface PendingFile {
 export function FileUploader({ open, onClose }: Props) {
   const { activeWorkspace } = useWorkspace()
   const activeWorkspaceId = activeWorkspace?._id
-  const { addFile, setUploading, setUploadProgress, uploadProgress } = useStorageStore()
+  const { addFile, setUploading, setUploadProgress, uploadProgress, currentFolderId } = useStorageStore()
   const [pending, setPending] = useState<PendingFile[]>([])
   const [uploading, setLocalUploading] = useState(false)
 
@@ -138,6 +138,7 @@ export function FileUploader({ open, onClose }: Props) {
             resourceType,
             format: cloudData.format ?? ext,
             size: file.size,
+            folderId: currentFolderId ?? null,
           }),
         })
 
